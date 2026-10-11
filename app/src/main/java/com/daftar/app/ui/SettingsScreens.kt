@@ -25,6 +25,10 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Fingerprint
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material.icons.outlined.Pin
+import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Percent
@@ -36,6 +40,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Switch
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,6 +55,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
@@ -59,6 +65,8 @@ import com.daftar.app.data.Business
 import com.daftar.app.data.Prefs
 import com.daftar.app.domain.parseDecimal
 import com.daftar.app.domain.trimNumber
+import com.daftar.app.widget.canPinWidgets
+import com.daftar.app.widget.requestPinWidget
 import java.time.LocalDate
 
 // ------------------------------------------------------------------ "More" tab
@@ -126,6 +134,10 @@ fun SettingsScreen(vm: AppViewModel, go: Go) {
     var theme by remember { mutableStateOf(vm.prefs.themeMode) }
     var message by remember { mutableStateOf<Int?>(null) }
     var confirmRestore by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var biometricOn by remember(vm.lockEnabled) { mutableStateOf(vm.prefs.biometricUnlock) }
+    val biometricTitle = stringResource(R.string.lock_biometric_confirm)
+    val cancelLabel = stringResource(R.string.cancel)
 
     val saveBackup = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         if (uri != null) {
@@ -153,6 +165,88 @@ fun SettingsScreen(vm: AppViewModel, go: Go) {
                     vm.prefs.themeMode = themes[it]
                 },
             )
+
+            // ---- app lock
+            SectionLabel(stringResource(R.string.security))
+            CardList {
+                ListRow(
+                    title = stringResource(R.string.lock_title),
+                    subtitle = stringResource(if (vm.lockEnabled) R.string.lock_on_hint else R.string.lock_off_hint),
+                    leading = { IconBadge(Icons.Outlined.Lock) },
+                    trailing = {
+                        Switch(
+                            checked = vm.lockEnabled,
+                            onCheckedChange = { on ->
+                                if (on) {
+                                    go.to("setpin")
+                                } else {
+                                    vm.removePin()
+                                    biometricOn = false
+                                }
+                            },
+                        )
+                    },
+                )
+                if (vm.lockEnabled) {
+                    RowDivider()
+                    ListRow(
+                        title = stringResource(R.string.lock_change_pin),
+                        onClick = { go.to("setpin") },
+                        leading = { IconBadge(Icons.Outlined.Pin) },
+                    )
+                    if (canUseBiometric(context)) {
+                        RowDivider()
+                        ListRow(
+                            title = stringResource(R.string.lock_biometric),
+                            subtitle = stringResource(R.string.lock_biometric_hint),
+                            leading = { IconBadge(Icons.Outlined.Fingerprint) },
+                            trailing = {
+                                Switch(
+                                    checked = biometricOn,
+                                    onCheckedChange = { on ->
+                                        if (on) {
+                                            // prove it works on this phone before relying on it
+                                            askBiometric(context, biometricTitle, cancelLabel) {
+                                                vm.prefs.biometricUnlock = true
+                                                biometricOn = true
+                                            }
+                                        } else {
+                                            vm.prefs.biometricUnlock = false
+                                            biometricOn = false
+                                        }
+                                    },
+                                )
+                            },
+                        )
+                    }
+                }
+            }
+            Text(
+                stringResource(R.string.lock_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+
+            // ---- widgets
+            if (canPinWidgets(context)) {
+                SectionLabel(stringResource(R.string.widgets))
+                CardList {
+                    ListRow(
+                        title = stringResource(R.string.widget_snapshot_name),
+                        subtitle = stringResource(R.string.widget_snapshot_description),
+                        onClick = { requestPinWidget(context, snapshot = true) },
+                        leading = { IconBadge(Icons.Outlined.Widgets) },
+                    )
+                    RowDivider()
+                    ListRow(
+                        title = stringResource(R.string.widget_actions_name),
+                        subtitle = stringResource(R.string.widget_actions_description),
+                        onClick = { requestPinWidget(context, snapshot = false) },
+                        leading = { IconBadge(Icons.Outlined.Widgets) },
+                    )
+                }
+            }
 
             SectionLabel(stringResource(R.string.backup))
             CardList {

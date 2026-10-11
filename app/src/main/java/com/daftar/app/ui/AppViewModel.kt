@@ -38,6 +38,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -131,6 +133,94 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     /** Which filter chip is on in the documents list; see matchesFilter. */
     var docsFilter by mutableIntStateOf(0)
     var moneyTab by mutableIntStateOf(0)
+
+    // ---- app lock
+    /** True when a PIN is set. */
+    var lockEnabled by mutableStateOf(prefs.hasPin)
+        private set
+
+    /** True while the lock screen is covering the app. Starts locked whenever a PIN is set. */
+    var locked by mutableStateOf(prefs.hasPin)
+        private set
+
+    /** Wrong tries in a row, and the time (ms) before which no more tries are accepted. */
+    var failedTries by mutableIntStateOf(0)
+        private set
+    var lockedOutUntil by mutableStateOf(0L)
+        private set
+
+    private var leftAt = 0L
+
+    /** Called when the app goes to the background and when it comes back. */
+    fun onAppHidden() {
+        leftAt = System.currentTimeMillis()
+    }
+
+    fun onAppShown() {
+        // a short absence (the camera, picking a photo, sharing a PDF) does not ask for the PIN again
+        if (lockEnabled && leftAt != 0L && System.currentTimeMillis() - leftAt > 60_000L) {
+            locked = true
+            // sheets float above the lock screen, so close them
+            createOpen = false
+            scanOpen = false
+        }
+    }
+
+    fun unlockWithBiometric() {
+        failedTries = 0
+        locked = false
+    }
+
+    fun tryPin(pin: String, onWrong: () -> Unit) = viewModelScope.launch {
+        if (System.currentTimeMillis() < lockedOutUntil) return@launch
+        val ok = withContext(Dispatchers.Default) { prefs.checkPin(pin) }
+        if (ok) {
+            failedTries = 0
+            locked = false
+        } else {
+            failedTries++
+            // after five wrong tries, each further block of tries waits 30 seconds
+            if (failedTries % 5 == 0) lockedOutUntil = System.currentTimeMillis() + 30_000L
+            onWrong()
+        }
+    }
+
+    fun setPin(pin: String, onDone: () -> Unit) = viewModelScope.launch {
+        withContext(Dispatchers.Default) { prefs.setPin(pin) }
+        lockEnabled = true
+        locked = false
+        refreshWidgets()
+        onDone()
+    }
+
+    fun removePin() {
+        prefs.clearPin()
+        lockEnabled = false
+        locked = false
+        refreshWidgets()
+    }
+
+    /** Screenshot support: show the lock screen without a PIN being set. */
+    var lockPreview by mutableStateOf(false)
+
+    // ---- home-screen widgets
+    fun refreshWidgets() = viewModelScope.launch {
+        try {
+            com.daftar.app.widget.refreshWidgets(getApplication<Application>())
+        } catch (e: Exception) {
+            // no widget placed, or the launcher does not support them
+        }
+    }
+
+    init {
+        // keep the widget in step with the books: redraw shortly after anything changes
+        viewModelScope.launch {
+            combine(business, docs, txns) { b, d, t -> Triple(b, d, t) }.collectLatest {
+                delay(800)
+                refreshWidgets()
+            }
+        }
+    }
 
     /** The "create something" sheet behind the centre + button, and the scan-a-bill sheet. */
     var createOpen by mutableStateOf(false)

@@ -44,6 +44,30 @@
                 android:value="true" />
         </service>
 
+        <!-- Home-screen widgets -->
+        <receiver
+            android:name=".widget.SnapshotWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_snapshot_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_snapshot_info" />
+        </receiver>
+        <receiver
+            android:name=".widget.ActionsWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_actions_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_actions_info" />
+        </receiver>
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.files"

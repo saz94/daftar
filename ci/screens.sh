@@ -34,6 +34,38 @@ shot business/1 en_business
 shot loans en_loans
 shot shareholders en_shareholders
 shot tax en_tax
+shot settings en_settings
+shot lock en_lock
+shot setpin en_setpin
+
+# widgets: ask the launcher to place each one, press its "Add" button, then photograph the home screen
+pin() { # route name
+  adb shell am start -S -W -n com.daftar.app/.MainActivity --ez demo true --es route "$1" >/dev/null
+  sleep 10
+  adb exec-out screencap -p > "$OUT/$2_dialog.png"
+  adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
+  adb exec-out cat /sdcard/ui.xml > /tmp/ui.xml || true
+  XY=$(python3 - <<'PY'
+import re
+x = open('/tmp/ui.xml', encoding='utf-8', errors='ignore').read()
+best = None
+for m in re.finditer(r'text="([^"]*)"[^>]*?bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', x):
+    t = m.group(1).strip().lower()
+    if t in ('add to home screen', 'add automatically', 'add'):
+        a, b, c, d = map(int, m.groups()[1:])
+        best = ((a + c) // 2, (b + d) // 2)
+print('%d %d' % best if best else '')
+PY
+)
+  echo "pin button at: $XY"
+  if [ -n "$XY" ]; then adb shell input tap $XY; sleep 4; fi
+}
+pin pinwidget widget_snapshot
+pin pinactions widget_actions
+adb shell input keyevent KEYCODE_HOME; sleep 6
+adb exec-out screencap -p > "$OUT/widgets_home.png"
+adb shell input swipe 800 1200 200 1200 300; sleep 3
+adb exec-out screencap -p > "$OUT/widgets_home_2.png"
 shot products en_products
 shot doc/QUOTATION/0 en_new_quote
 

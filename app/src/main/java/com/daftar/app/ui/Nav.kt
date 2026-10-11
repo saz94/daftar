@@ -29,7 +29,11 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
+import android.app.Activity
+import android.view.WindowManager
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -112,6 +116,21 @@ fun AppRoot(vm: AppViewModel = viewModel(), demo: Boolean = false, startRoute: S
             else -> AppNav(vm, startRoute)
         }
     }
+    // The lock sits above everything. The app underneath stays alive, so a photo being taken or a
+    // half-written invoice is still there after unlocking.
+    if (vm.locked || vm.lockPreview) LockScreen(vm)
+
+    // While a PIN is set, keep the app's contents out of screenshots and the recent-apps strip.
+    val window = (LocalContext.current as? Activity)?.window
+    DisposableEffect(vm.lockEnabled, window) {
+        if (vm.lockEnabled) {
+            window?.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        } else {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        }
+        onDispose {}
+    }
+
     if (vm.scanning) {
         Dialog(onDismissRequest = {}) {
             Surface(shape = MaterialTheme.shapes.large, color = MaterialTheme.colorScheme.surface) {
@@ -132,6 +151,7 @@ private fun AppNav(vm: AppViewModel, startRoute: String?) {
     val go = remember(nav) { Go(nav) { vm.createOpen = true } }
     val idArg = listOf(navArgument("id") { type = NavType.LongType })
     val scan = rememberScanActions(vm) { go.toNow("doc/${DocKind.PURCHASE}/0") }
+    val context = LocalContext.current
 
     NavHost(
         navController = nav,
@@ -179,6 +199,7 @@ private fun AppNav(vm: AppViewModel, startRoute: String?) {
         }
         composable("tax") { TaxScreen(vm, go) }
         composable("settings") { SettingsScreen(vm, go) }
+        composable("setpin") { PinSetupScreen(vm, go) }
         composable("business/{id}", arguments = idArg) { entry ->
             BusinessEditorScreen(vm, id = entry.arguments?.getLong("id") ?: 0L, onDone = { go.back() }, onBack = { go.back() })
         }
@@ -189,6 +210,10 @@ private fun AppNav(vm: AppViewModel, startRoute: String?) {
         if (!startRoute.isNullOrBlank() && startRoute != "home") {
             when (startRoute) {
                 "create" -> vm.createOpen = true
+                "scan" -> vm.scanOpen = true
+                "lock" -> vm.lockPreview = true
+                "pinwidget" -> com.daftar.app.widget.requestPinWidget(context, snapshot = true)
+                "pinactions" -> com.daftar.app.widget.requestPinWidget(context, snapshot = false)
                 "docs", "money", "more" -> go.tab(startRoute)
                 else -> go.toNow(startRoute)
             }

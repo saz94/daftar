@@ -14,8 +14,9 @@ android {
         applicationId = "com.daftar.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        // Raise versionCode with every release; Android refuses to install a lower one over a higher one.
+        versionCode = 3
+        versionName = "1.2"
     }
 
     // One fixed signing key kept in the project, so every build can be installed over the
@@ -80,6 +81,10 @@ dependencies {
     // On-device text recognition (Latin script) for reading invoice photos.
     implementation("com.google.mlkit:text-recognition:16.0.1")
     implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // Fingerprint / face unlock, and home-screen widgets.
+    implementation("androidx.biometric:biometric:1.1.0")
+    implementation("androidx.glance:glance-appwidget:1.1.1")
 
     testImplementation("junit:junit:4.13.2")
 }

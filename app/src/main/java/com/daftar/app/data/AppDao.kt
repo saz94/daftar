@@ -206,6 +206,13 @@ abstract class AppDao {
         block()
     }
 
+    // ---- one-off reads for the home-screen widget
+    @Query("SELECT * FROM docs WHERE businessId = :businessId")
+    abstract suspend fun docsOf(businessId: Long): List<Doc>
+
+    @Query("SELECT * FROM txns WHERE businessId = :businessId")
+    abstract suspend fun txnsOf(businessId: Long): List<Txn>
+
     // ---- backup and restore
     @Query("SELECT * FROM businesses")
     abstract suspend fun allBusinesses(): List<Business>
