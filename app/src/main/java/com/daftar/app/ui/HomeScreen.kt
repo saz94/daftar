@@ -569,7 +569,8 @@ private fun HeroCard(
                         modifier = Modifier.padding(bottom = 9.dp),
                     )
                 }
-                if (previous != null && previous.profit != 0L) {
+                // a percentage only means something when both periods made a profit
+                if (previous != null && previous.profit > 0L && summary.profit > 0L) {
                     val change = (summary.profit - previous.profit) * 100.0 / abs(previous.profit)
                     val up = change >= 0
                     Spacer(Modifier.height(6.dp))

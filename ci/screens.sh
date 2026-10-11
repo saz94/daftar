@@ -6,8 +6,13 @@ OUT=shots
 mkdir -p "$OUT"
 adb install -r "$APK"
 adb shell settings put system screen_off_timeout 1800000 || true
+# the CI emulator is slow enough that the launcher sometimes trips "isn't responding"; keep that off the pictures
+adb shell settings put global hide_error_dialogs 1 || true
+adb shell settings put secure anr_show_background 0 || true
+adb shell input keyevent KEYCODE_HOME; sleep 20
 
 shot() { # route name
+  adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS >/dev/null 2>&1 || true
   adb shell am start -S -W -n com.daftar.app/.MainActivity --ez demo true --es route "$1" >/dev/null
   sleep "${3:-10}"
   adb exec-out screencap -p > "$OUT/$2.png"

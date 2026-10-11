@@ -8,7 +8,7 @@ All data stays on the phone.
 
 | Area | What you can do |
 | --- | --- |
-| Businesses | Keep any number of businesses and switch between them from the home screen. Each has its own TRN, currency (AED by default), VAT rate (5% by default), invoice numbering and colour. |
+| Businesses | Keep any number of businesses and switch between them from the home screen. Each has its own optional logo, brand colour, TRN, currency (AED by default), VAT rate (5% by default) and invoice numbering. The logo and colour appear on its invoices and quotations. |
 | Dashboard | Net profit, income and expenses for a month, quarter, year or all time; a six-month chart; VAT to pay; unpaid invoices; loans outstanding; capital invested. |
 | Invoices | Create tax invoices with line items, mixed VAT rates and a discount. Share as an A4 PDF (mirrored layout in Arabic). Mark paid; overdue ones are flagged. |
 | Quotations | Same editor, with a "valid until" date. Turn an accepted quotation into an invoice in one tap. |
@@ -22,9 +22,8 @@ All data stays on the phone.
 
 ## Getting an installable app (APK)
 
-This project was written without access to Google's Android libraries, so **it has not been
-compiled yet**. The first build may show a few compiler errors; send the error text back and
-they can be fixed quickly.
+Every push to the `main` branch builds the APK on GitHub, runs the tests, then starts an emulator
+and saves screenshots of the main screens (English, Arabic, light, dark) to the `screenshots` branch.
 
 ### Option A: let GitHub build it (nothing to install)
 
@@ -42,8 +41,9 @@ If the run turns red, open it, copy the red error lines, and send them back.
 ### Option B: Android Studio
 
 1. Install Android Studio (Ladybug or newer).
-2. **File > Open** and choose this folder. Wait for the first sync to finish.
-3. Plug in your phone with USB debugging on (or start an emulator) and press **Run**.
+2. Run `bash ci/fetch_fonts.sh` once in this folder. It downloads the app's typeface (IBM Plex Sans Arabic); the build fails without it.
+3. **File > Open** and choose this folder. Wait for the first sync to finish.
+4. Plug in your phone with USB debugging on (or start an emulator) and press **Run**.
 
 ## How reading an invoice photo works
 
@@ -76,14 +76,11 @@ This app is a record-keeping tool, not tax advice.
 
 ## What has been checked
 
-- The tax maths and the invoice-text reader are plain Kotlin and were compiled and run:
-  `app/src/test/java/com/daftar/app/DomainTest.kt` (9 tests, all passing).
-- Every Kotlin file was type-checked with the Kotlin 2.0.21 compiler against hand-written
-  stand-ins for the Android libraries, with no errors. That catches typos, missing imports and
-  type mistakes, but not a mismatch with the real library versions.
-- Every text key used in code exists in both the English and Arabic files.
-- Not done: a real build, and running the app on a phone. Layouts have not been seen on a
-  screen yet.
+- The app builds on GitHub with the real Android libraries.
+- The tax maths and the invoice-text reader have tests (`app/src/test/java/com/daftar/app/DomainTest.kt`) that run on every build.
+- The main screens are photographed on an emulator on every build, with sample data, in both
+  languages and both themes.
+- Not checked: the camera and photo import on a real device, and sharing a PDF to other apps.
 
 ## Project layout
 
