@@ -243,9 +243,9 @@
     <string name="create_expense_hint">Rent, salaries, fees</string>
     <string name="create_income_hint">Cash sales and other money in</string>
     <string name="needs_attention">Needs attention</string>
-    <string name="attention_overdue">Overdue invoices (%1$d)</string>
+    <string name="attention_overdue">Overdue invoices (%1$s)</string>
     <string name="attention_overdue_hint">Customers past their due date</string>
-    <string name="attention_bills">Supplier invoices to pay (%1$d)</string>
+    <string name="attention_bills">Supplier invoices to pay (%1$s)</string>
     <string name="attention_bills_hint">Purchases not yet paid</string>
     <string name="attention_vat">VAT for %1$s</string>
     <string name="attention_vat_hint">Collected on sales, owed to the FTA</string>

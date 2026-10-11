@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.outlined.TrendingDown
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
@@ -174,7 +175,7 @@ fun HomeScreen(vm: AppViewModel, go: Go) {
     val attention = ArrayList<Attention>()
     if (overdue.isNotEmpty()) {
         attention.add(
-            Attention(Icons.Outlined.WarningAmber, money.negative, stringResource(R.string.attention_overdue, overdue.size), stringResource(R.string.attention_overdue_hint), overdue.sumOf { it.total }) {
+            Attention(Icons.Outlined.WarningAmber, money.negative, stringResource(R.string.attention_overdue, overdue.size.toString()), stringResource(R.string.attention_overdue_hint), overdue.sumOf { it.total }) {
                 vm.docsTab = 0
                 vm.docsFilter = 3
                 go.tab("docs")
@@ -183,7 +184,7 @@ fun HomeScreen(vm: AppViewModel, go: Go) {
     }
     if (bills.isNotEmpty()) {
         attention.add(
-            Attention(Icons.Outlined.ShoppingBag, money.due, stringResource(R.string.attention_bills, bills.size), stringResource(R.string.attention_bills_hint), bills.sumOf { it.total }) {
+            Attention(Icons.Outlined.ShoppingBag, money.due, stringResource(R.string.attention_bills, bills.size.toString()), stringResource(R.string.attention_bills_hint), bills.sumOf { it.total }) {
                 vm.docsTab = 2
                 vm.docsFilter = 1
                 go.tab("docs")
@@ -304,9 +305,11 @@ fun HomeScreen(vm: AppViewModel, go: Go) {
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            PeriodBar(period, onChange = { vm.period = it })
+            PeriodBar(period, onChange = { vm.period = it }, showStepper = false)
 
             HeroCard(
+                period = period,
+                onPeriod = { vm.period = it },
                 currency = b.currency,
                 summary = summary,
                 previous = previous,
@@ -480,6 +483,8 @@ private val DuplicateYellow = Color(0xFFF6DC7A)
  */
 @Composable
 private fun HeroCard(
+    period: Period,
+    onPeriod: (Period) -> Unit,
     currency: String,
     summary: Summary,
     previous: Summary?,
@@ -518,7 +523,31 @@ private fun HeroCard(
                 }
             },
     ) {
-        Column(Modifier.fillMaxWidth().padding(top = 20.dp, bottom = 16.dp)) {
+        Column(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 16.dp)) {
+            // which period this is, with arrows to step back and forward
+            Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (period.type == PeriodType.ALL) stringResource(R.string.period_all) else period.label(),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = Color.White,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1f),
+                )
+                if (period.type != PeriodType.ALL) {
+                    IconButton(onClick = { onPeriod(period.copy(offset = period.offset - 1)) }) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = stringResource(R.string.previous), tint = Color.White)
+                    }
+                    IconButton(onClick = { onPeriod(period.copy(offset = period.offset + 1)) }, enabled = period.offset < 0) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = stringResource(R.string.next),
+                            tint = Color.White.copy(alpha = if (period.offset < 0) 1f else 0.35f),
+                        )
+                    }
+                } else {
+                    Spacer(Modifier.height(48.dp))
+                }
+            }
             Column(Modifier.padding(horizontal = 20.dp)) {
                 Text(
                     stringResource(R.string.net_profit),

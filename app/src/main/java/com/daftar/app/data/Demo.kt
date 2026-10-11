@@ -6,7 +6,9 @@ import java.time.LocalDate
  * Sample data, used only for taking screenshots of the app: it is loaded when the app is started
  * with the "demo" launch flag and has no businesses yet. Nothing in the normal app reaches it.
  */
-suspend fun AppDao.seedDemo() {
+suspend fun AppDao.seedDemo() = inTransaction { seedDemoRows() }
+
+private suspend fun AppDao.seedDemoRows() {
     if (allBusinesses().isNotEmpty()) return
     val today = LocalDate.now()
     val b = insert(

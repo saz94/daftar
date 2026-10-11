@@ -161,7 +161,7 @@ fun DocPreviewScreen(vm: AppViewModel, go: Go, id: Long) {
             if (current != null) {
                 Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 12.dp) {
                     Row(
-                        Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 16.dp, vertical = 12.dp),
+                        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
                         val unpaidInvoice = current.kind == DocKind.INVOICE && current.status == DocStatus.UNPAID

@@ -416,7 +416,7 @@ fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, mod
 
 /** Month / quarter / year switch with arrows to step backwards and forwards. */
 @Composable
-fun PeriodBar(period: Period, onChange: (Period) -> Unit, modifier: Modifier = Modifier) {
+fun PeriodBar(period: Period, onChange: (Period) -> Unit, modifier: Modifier = Modifier, showStepper: Boolean = true) {
     Column(modifier) {
         Segmented(
             options = listOf(
@@ -428,7 +428,7 @@ fun PeriodBar(period: Period, onChange: (Period) -> Unit, modifier: Modifier = M
             selected = period.type.ordinal,
             onSelect = { onChange(Period(PeriodType.values()[it], 0)) },
         )
-        if (period.type != PeriodType.ALL) {
+        if (showStepper && period.type != PeriodType.ALL) {
             Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { onChange(period.copy(offset = period.offset - 1)) }) {
                     Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = stringResource(R.string.previous))

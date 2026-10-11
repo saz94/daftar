@@ -76,6 +76,19 @@ object PdfExporter {
             page = null
         }
 
+        /**
+         * On an Arabic page, text with no Arabic in it (a phone number, an English note) is wrapped
+         * in a left-to-right isolate. Without it "+971 4 338 1234" comes out as "1234 338 4 971+".
+         */
+        fun isolate(text: String): String {
+            if (!rtl) return text
+            val hasRtl = text.any {
+                val d = Character.getDirectionality(it)
+                d == Character.DIRECTIONALITY_RIGHT_TO_LEFT || d == Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC
+            }
+            return if (hasRtl) text else "\u2066" + text + "\u2069"
+        }
+
         fun layout(text: String, width: Float, paint: TextPaint, align: Int): StaticLayout {
             val alignment = if (align == END) Layout.Alignment.ALIGN_OPPOSITE else Layout.Alignment.ALIGN_NORMAL
             return StaticLayout.Builder.obtain(text, 0, text.length, paint, width.toInt().coerceAtLeast(1))
@@ -86,8 +99,9 @@ object PdfExporter {
         }
 
         /** Draws text in a box that begins [startX] from the start edge. Returns the height used. */
-        fun text(text: String, startX: Float, width: Float, paint: TextPaint, top: Float, align: Int = START): Float {
-            if (text.isEmpty()) return 0f
+        fun text(raw: String, startX: Float, width: Float, paint: TextPaint, top: Float, align: Int = START): Float {
+            if (raw.isEmpty()) return 0f
+            val text = isolate(raw)
             val l = layout(text, width, paint, align)
             val left = if (rtl) PAGE_W - startX - width else startX
             canvas.save()
@@ -221,7 +235,7 @@ object PdfExporter {
         val cell = paint(10f, INK)
         val rule = fill(RULE)
         for (line in lines) {
-            val descHeight = sheet.layout(line.description, wDesc - 2 * pad, cell, START).height.toFloat()
+            val descHeight = sheet.layout(sheet.isolate(line.description), wDesc - 2 * pad, cell, START).height.toFloat()
             val rowHeight = maxOf(descHeight, 12f) + 14f
             if (sheet.y + rowHeight > PAGE_H - MARGIN - 30f) {
                 sheet.newPage()
@@ -262,7 +276,7 @@ object PdfExporter {
         // ---- notes
         if (doc.notes.isNotBlank()) {
             val notes = paint(9.5f, INK)
-            val height = sheet.layout(doc.notes, CONTENT_W, notes, START).height
+            val height = sheet.layout(sheet.isolate(doc.notes), CONTENT_W, notes, START).height
             if (sheet.y + height + 20f > PAGE_H - MARGIN) sheet.newPage()
             sheet.y += sheet.text(context.getString(R.string.notes), MARGIN, CONTENT_W, paint(8.5f, MUTED, true), sheet.y) + 4f
             sheet.y += sheet.text(doc.notes, MARGIN, CONTENT_W, notes, sheet.y)

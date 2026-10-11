@@ -243,9 +243,9 @@
     <string name="create_expense_hint">إيجار، رواتب، رسوم</string>
     <string name="create_income_hint">مبيعات نقدية وإيرادات أخرى</string>
     <string name="needs_attention">يحتاج إلى متابعة</string>
-    <string name="attention_overdue">فواتير متأخرة (%1$d)</string>
+    <string name="attention_overdue">فواتير متأخرة (%1$s)</string>
     <string name="attention_overdue_hint">عملاء تجاوزوا تاريخ الاستحقاق</string>
-    <string name="attention_bills">فواتير مورّدين للدفع (%1$d)</string>
+    <string name="attention_bills">فواتير مورّدين للدفع (%1$s)</string>
     <string name="attention_bills_hint">مشتريات لم تُدفع بعد</string>
     <string name="attention_vat">ضريبة %1$s</string>
     <string name="attention_vat_hint">محصّلة من المبيعات ومستحقة للهيئة</string>

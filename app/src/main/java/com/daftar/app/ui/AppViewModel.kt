@@ -269,7 +269,30 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** Screenshot support only; see data/Demo.kt. */
-    fun seedDemo() = viewModelScope.launch { dao.seedDemo() }
+    fun seedDemo() = viewModelScope.launch {
+        dao.seedDemo()
+        // a drawn stand-in logo, so screenshots show where a real one goes
+        val first = dao.allBusinesses().firstOrNull() ?: return@launch
+        if (first.logoPath != null) return@launch
+        val path = withContext(Dispatchers.IO) {
+            val bitmap = Bitmap.createBitmap(640, 220, Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bitmap)
+            val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+            paint.color = 0xFF2340B8.toInt()
+            canvas.drawCircle(110f, 110f, 100f, paint)
+            paint.color = 0xFFFFFFFF.toInt()
+            canvas.drawCircle(110f, 110f, 46f, paint)
+            paint.color = 0xFF141A2E.toInt()
+            paint.textSize = 132f
+            paint.typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD)
+            canvas.drawText("noor", 240f, 156f, paint)
+            val dir = File(getApplication<Application>().filesDir, "logos").apply { mkdirs() }
+            val file = File(dir, "demo_logo.png")
+            file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            file.absolutePath
+        }
+        dao.update(first.copy(logoPath = path))
+    }
 
     // ---- logo
     /** Copies a chosen picture into the app as a small PNG and returns its path, or null. */

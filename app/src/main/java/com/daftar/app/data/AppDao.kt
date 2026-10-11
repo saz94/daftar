@@ -200,6 +200,12 @@ abstract class AppDao {
         deleteBusinessRow(id)
     }
 
+    /** Runs several writes as one, which is both safer and much faster. */
+    @Transaction
+    open suspend fun inTransaction(block: suspend () -> Unit) {
+        block()
+    }
+
     // ---- backup and restore
     @Query("SELECT * FROM businesses")
     abstract suspend fun allBusinesses(): List<Business>
