@@ -84,3 +84,47 @@ shot create ar_create
 adb shell cmd uimode night yes
 shot home ar_dark_home
 ls -la "$OUT"
+
+# ---- end-to-end check of the app lock. With a PIN set the screen cannot be photographed (that is
+# deliberate), so this reads the on-screen text instead and writes what it found to lock_test.txt.
+adb shell cmd uimode night no
+adb shell cmd locale set-app-locales com.daftar.app --locales en || true
+screen_text() {
+  adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1
+  adb exec-out cat /sdcard/ui.xml > /tmp/ui.xml || true
+}
+tap_text() { # taps the centre of the element showing exactly this text
+  screen_text
+  XY=$(T="$1" python3 - <<'PY'
+import os, re
+x = open('/tmp/ui.xml', encoding='utf-8', errors='ignore').read()
+for m in re.finditer(r'text="([^"]*)"[^>]*?bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', x):
+    if m.group(1) == os.environ['T']:
+        a, b, c, d = map(int, m.groups()[1:])
+        print((a + c) // 2, (b + d) // 2)
+        break
+PY
+)
+  if [ -n "$XY" ]; then adb shell input tap $XY; sleep 1; else echo "could not find '$1'"; fi
+}
+has() { screen_text; if grep -q "$1" /tmp/ui.xml; then echo "PASS: $2"; else echo "FAIL: $2"; fi; }
+{
+  adb shell am start -S -W -n com.daftar.app/.MainActivity --ez demo true --es route setpin >/dev/null; sleep 10
+  for d in 1 2 3 4; do tap_text $d; done
+  tap_text Next
+  for d in 1 2 3 4; do tap_text $d; done
+  sleep 3
+  adb shell am start -S -W -n com.daftar.app/.MainActivity >/dev/null; sleep 10
+  has "Enter your PIN" "after setting a PIN, the app opens locked"
+  for d in 9 9 9 9; do tap_text $d; done
+  sleep 2
+  has "right" "a wrong PIN is refused"
+  has "Enter your PIN" "still locked after a wrong PIN"
+  for d in 1 2 3 4; do tap_text $d; done
+  sleep 3
+  has "Noor Trading" "the right PIN opens the app"
+  adb shell input keyevent KEYCODE_HOME; sleep 2
+  adb shell am start -W -n com.daftar.app/.MainActivity >/dev/null; sleep 4
+  has "Noor Trading" "coming back within a minute does not ask again"
+} > "$OUT/lock_test.txt" 2>&1
+cat "$OUT/lock_test.txt"

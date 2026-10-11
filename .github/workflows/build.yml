@@ -63,7 +63,7 @@ jobs:
           script: bash ci/screens.sh
       - name: Publish the screenshots to the "screenshots" branch
         run: |
-          mkdir /tmp/pub && cp shots/*.png /tmp/pub/
+          mkdir /tmp/pub && cp shots/* /tmp/pub/
           cd /tmp/pub
           git init -q -b screenshots
           git config user.name "github-actions"
