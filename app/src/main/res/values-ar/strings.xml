@@ -98,7 +98,7 @@
     <string name="calculate_vat">احسب الضريبة بنسبة %1$s%%</string>
     <string name="error_need_item">أضف بندًا واحدًا على الأقل.</string>
     <string name="error_need_amount">أضف بندًا أو أدخل المبلغ.</string>
-    <string name="share_pdf">مشاركة بصيغة PDF</string>
+    <string name="share_pdf">مشاركة PDF</string>
     <string name="convert_to_invoice">تحويل إلى فاتورة</string>
     <string name="delete_document_title">حذف هذا المستند؟</string>
     <string name="delete_cannot_undo">لا يمكن التراجع عن هذا الإجراء.</string>
