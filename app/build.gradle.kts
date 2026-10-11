@@ -18,9 +18,21 @@ android {
         versionName = "1.0"
     }
 
+    // One fixed signing key kept in the project, so every build can be installed over the
+    // previous one without uninstalling (which would erase the data on the phone).
+    signingConfigs {
+        getByName("debug") {
+            storeFile = rootProject.file("ci/daftar.keystore")
+            storePassword = "android"
+            keyAlias = "daftar"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
     compileOptions {
