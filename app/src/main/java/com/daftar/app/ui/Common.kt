@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Dashboard
 import androidx.compose.material.icons.outlined.Description
@@ -62,6 +63,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -149,12 +151,29 @@ fun BottomTabs(current: String, go: Go) {
             Triple("money", Icons.Outlined.Payments, R.string.tab_money),
             Triple("more", Icons.Outlined.MoreHoriz, R.string.tab_more),
         )
-        for ((route, icon, label) in items) {
+        items.forEachIndexed { index, (route, icon, label) ->
+            if (index == 2) {
+                // the one thing you do most, creating something, sits in the middle of the bar
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    Surface(
+                        onClick = { go.create() },
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                        shadowElevation = 6.dp,
+                        modifier = Modifier.size(54.dp),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.create_new), modifier = Modifier.size(26.dp))
+                        }
+                    }
+                }
+            }
             NavigationBarItem(
                 selected = current == route,
                 onClick = { if (current != route) go.tab(route) },
                 icon = { Icon(icon, contentDescription = null) },
-                label = { Text(stringResource(label), maxLines = 1) },
+                label = { Text(stringResource(label), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 colors = NavigationBarItemDefaults.colors(
                     indicatorColor = MaterialTheme.colorScheme.primaryContainer,
                     selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -187,11 +206,37 @@ fun Panel(
 @Composable
 fun SectionLabel(text: String, modifier: Modifier = Modifier) {
     Text(
-        text = text.uppercase(Locale.getDefault()),
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp),
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurface,
+        modifier = modifier.padding(top = 10.dp, start = 4.dp, end = 4.dp),
     )
+}
+
+/** A round badge with a name's initials, tinted so the same name always gets the same colour. */
+@Composable
+fun InitialsAvatar(name: String, size: Int = 40) {
+    val words = name.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+    val initials = when {
+        words.isEmpty() -> "?"
+        words.size == 1 -> words[0].take(1)
+        else -> words[0].take(1) + words[1].take(1)
+    }.uppercase(Locale.getDefault())
+    val tint = CategoryColors[Math.floorMod(name.hashCode(), CategoryColors.size)]
+    Box(
+        Modifier
+            .size(size.dp)
+            .clip(CircleShape)
+            .background(tint.copy(alpha = 0.16f)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            initials,
+            style = MaterialTheme.typography.labelLarge,
+            color = lerp(tint, MaterialTheme.colorScheme.onSurface, 0.45f),
+            maxLines = 1,
+        )
+    }
 }
 
 /** A list row inside a white card: title + subtitle at the start, value at the end. */

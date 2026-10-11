@@ -14,9 +14,14 @@ class MainActivity : AppCompatActivity() {
         Prefs.applyTheme(Prefs(this).themeMode)
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Used when taking screenshots: start with sample data, on a particular screen.
+        val demo = intent?.getBooleanExtra("demo", false) ?: false
+        val startRoute = if (savedInstanceState == null) intent?.getStringExtra("route") else null
+
         setContent {
             DaftarTheme {
-                AppRoot()
+                AppRoot(demo = demo, startRoute = startRoute)
             }
         }
     }

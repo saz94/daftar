@@ -69,15 +69,6 @@ fun MoneyScreen(vm: AppViewModel, go: Go) {
 
     AppScreen(
         title = stringResource(R.string.income_and_expenses),
-        fab = {
-            ExtendedFloatingActionButton(
-                onClick = { go.to("txn/$newType/0") },
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text(addLabel) },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            )
-        },
         bottomBar = { BottomTabs("money", go) },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
@@ -97,7 +88,7 @@ fun MoneyScreen(vm: AppViewModel, go: Go) {
                 )
             } else {
                 LazyColumn(
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 96.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(list, key = { it.id }) { txn ->

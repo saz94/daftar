@@ -3,16 +3,22 @@ package com.daftar.app.io
 import android.content.ClipData
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.graphics.RectF
 import android.graphics.Typeface
 import android.graphics.pdf.PdfDocument
+import android.graphics.pdf.PdfRenderer
+import android.os.ParcelFileDescriptor
 import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextDirectionHeuristics
 import android.text.TextPaint
 import android.view.View
 import androidx.core.content.FileProvider
+import androidx.core.content.res.ResourcesCompat
 import com.daftar.app.R
 import com.daftar.app.data.Business
 import com.daftar.app.data.Doc
@@ -37,11 +43,17 @@ object PdfExporter {
     private const val MARGIN = 40f
     private const val CONTENT_W = PAGE_W - 2 * MARGIN
 
-    private const val INK = 0xFF171A1C.toInt()
-    private const val MUTED = 0xFF5E6468.toInt()
-    private const val ACCENT = 0xFF0E5A4B.toInt()
-    private const val RULE = 0xFFDEDAD0.toInt()
-    private const val BAND = 0xFFF1EEE7.toInt()
+    private const val INK = 0xFF141A2E.toInt()
+    private const val MUTED = 0xFF5B6480.toInt()
+    /** Same order as BusinessColors in ui/Theme.kt: the invoice takes the business's colour. */
+    private val ACCENTS = intArrayOf(
+        0xFF2340B8.toInt(), 0xFF17835A.toInt(), 0xFF8B2F5C.toInt(),
+        0xFFB26A00.toInt(), 0xFF0F7C8C.toInt(), 0xFF3A4466.toInt(),
+    )
+    private var regularFace: Typeface = Typeface.DEFAULT
+    private var boldFace: Typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+    private const val RULE = 0xFFDDE2EE.toInt()
+    private const val BAND = 0xFFF2F4F9.toInt()
 
     private const val START = 0
     private const val END = 1
@@ -89,12 +101,17 @@ object PdfExporter {
             val left = if (rtl) PAGE_W - startX - width else startX
             canvas.drawRect(left, top, left + width, top + height, paint)
         }
+
+        fun image(bitmap: Bitmap, startX: Float, top: Float, width: Float, height: Float) {
+            val left = if (rtl) PAGE_W - startX - width else startX
+            canvas.drawBitmap(bitmap, null, RectF(left, top, left + width, top + height), Paint(Paint.FILTER_BITMAP_FLAG or Paint.ANTI_ALIAS_FLAG))
+        }
     }
 
     private fun paint(size: Float, color: Int = INK, bold: Boolean = false) = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         textSize = size
         this.color = color
-        typeface = if (bold) Typeface.create(Typeface.DEFAULT, Typeface.BOLD) else Typeface.DEFAULT
+        typeface = if (bold) boldFace else regularFace
     }
 
     private fun fill(color: Int) = Paint().apply {
@@ -107,6 +124,14 @@ object PdfExporter {
 
     fun export(context: Context, business: Business, doc: Doc, lines: List<DocLine>): File {
         val rtl = context.resources.configuration.layoutDirection == View.LAYOUT_DIRECTION_RTL
+        // the app's own typeface, so the document matches what is on screen
+        try {
+            regularFace = ResourcesCompat.getFont(context, R.font.plex_regular) ?: Typeface.DEFAULT
+            boldFace = ResourcesCompat.getFont(context, R.font.plex_semibold) ?: Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+        } catch (e: Exception) {
+            // keep the system typeface
+        }
+        val accent = ACCENTS[Math.floorMod(business.colorIndex, ACCENTS.size)]
         val pdf = PdfDocument()
         val sheet = Sheet(pdf, rtl)
         sheet.newPage()
@@ -120,6 +145,21 @@ object PdfExporter {
 
         // ---- header: seller on the start side, document title on the end side
         var leftY = MARGIN
+        // optional logo above the business name, fitted into a 150 x 54 pt box
+        val logo = business.logoPath?.let { path ->
+            try {
+                BitmapFactory.decodeFile(path)
+            } catch (e: Throwable) {
+                null
+            }
+        }
+        if (logo != null && logo.width > 0 && logo.height > 0) {
+            val scale = minOf(150f / logo.width, 54f / logo.height)
+            val w = logo.width * scale
+            val h = logo.height * scale
+            sheet.image(logo, MARGIN, leftY, w, h)
+            leftY += h + 10f
+        }
         leftY += sheet.text(business.name, MARGIN, half, paint(18f, INK, true), leftY) + 4f
         val small = paint(9.5f, MUTED)
         if (business.address.isNotBlank()) leftY += sheet.text(business.address, MARGIN, half, small, leftY) + 2f
@@ -131,7 +171,7 @@ object PdfExporter {
 
         val endX = MARGIN + CONTENT_W - half
         var rightY = MARGIN
-        rightY += sheet.text(title, endX, half, paint(20f, ACCENT, true), rightY, END) + 6f
+        rightY += sheet.text(title, endX, half, paint(20f, accent, true), rightY, END) + 6f
         rightY += sheet.text(doc.number, endX, half, paint(11f, INK, true), rightY, END) + 3f
         rightY += sheet.text(context.getString(R.string.pdf_date, date(doc.day)), endX, half, small, rightY, END) + 2f
         doc.dueDay?.let { due ->
@@ -140,7 +180,7 @@ object PdfExporter {
         }
 
         sheet.y = maxOf(leftY, rightY) + 14f
-        sheet.rect(MARGIN, sheet.y, CONTENT_W, 2f, fill(ACCENT))
+        sheet.rect(MARGIN, sheet.y, CONTENT_W, 2f, fill(accent))
         sheet.y += 16f
 
         // ---- customer
@@ -213,7 +253,7 @@ object PdfExporter {
             sheet.y += 18f
         }
         sheet.y += 2f
-        sheet.rect(boxX, sheet.y, boxW, 30f, fill(ACCENT))
+        sheet.rect(boxX, sheet.y, boxW, 30f, fill(accent))
         val white = paint(11f, 0xFFFFFFFF.toInt(), true)
         sheet.text(context.getString(R.string.pdf_total, business.currency), boxX + pad + 4f, boxW / 2, white, sheet.y + 9f)
         sheet.text(Money.format(doc.total), boxX + boxW / 2, boxW / 2 - pad - 4f, white, sheet.y + 9f, END)
@@ -236,6 +276,27 @@ object PdfExporter {
         FileOutputStream(file).use { pdf.writeTo(it) }
         pdf.close()
         return file
+    }
+
+    /** Turns the pages of an exported PDF into pictures for the on-screen preview. */
+    fun render(file: File, scale: Int = 2): List<Bitmap> {
+        val pages = ArrayList<Bitmap>()
+        ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { descriptor ->
+            val renderer = PdfRenderer(descriptor)
+            try {
+                for (index in 0 until renderer.pageCount) {
+                    val page = renderer.openPage(index)
+                    val bitmap = Bitmap.createBitmap(page.width * scale, page.height * scale, Bitmap.Config.ARGB_8888)
+                    bitmap.eraseColor(0xFFFFFFFF.toInt())
+                    page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                    page.close()
+                    pages.add(bitmap)
+                }
+            } finally {
+                renderer.close()
+            }
+        }
+        return pages
     }
 
     fun share(context: Context, file: File) {

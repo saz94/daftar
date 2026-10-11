@@ -2,6 +2,17 @@ package com.daftar.app.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -108,6 +119,20 @@ private fun statusesFor(kind: String): List<String> =
 
 // ------------------------------------------------------------------ list
 
+/** Filter chips: 0 = all; for invoices and purchases 1 unpaid, 2 paid, 3 overdue; for quotations 1 open, 2 accepted, 3 declined. */
+private fun matchesFilter(doc: Doc, filter: Int, today: Long): Boolean {
+    if (filter == 0) return true
+    return if (doc.kind == DocKind.QUOTATION) {
+        doc.status == listOf(DocStatus.OPEN, DocStatus.ACCEPTED, DocStatus.DECLINED)[filter - 1]
+    } else {
+        when (filter) {
+            1 -> doc.status == DocStatus.UNPAID
+            2 -> doc.status == DocStatus.PAID
+            else -> doc.status == DocStatus.UNPAID && doc.dueDay != null && doc.dueDay < today
+        }
+    }
+}
+
 @Composable
 fun DocsScreen(vm: AppViewModel, go: Go) {
     val business by vm.business.collectAsState()
@@ -115,12 +140,22 @@ fun DocsScreen(vm: AppViewModel, go: Go) {
     val b = business ?: return
 
     val kind = KINDS[vm.docsTab.coerceIn(0, 2)]
-    val list = remember(docs, kind) { docs.filter { it.kind == kind } }
-    val waiting = remember(list) {
-        list.filter { it.status == DocStatus.UNPAID || it.status == DocStatus.OPEN }.sumOf { it.total }
+    val filter = vm.docsFilter.coerceIn(0, 3)
+    val today = today()
+    var query by rememberSaveable { mutableStateOf("") }
+    val ofKind = remember(docs, kind) { docs.filter { it.kind == kind } }
+    val list = remember(ofKind, filter, query, today) {
+        val q = query.trim()
+        ofKind.filter { doc ->
+            matchesFilter(doc, filter, today) &&
+                (q.isEmpty() || doc.partyName.contains(q, ignoreCase = true) || doc.number.contains(q, ignoreCase = true))
+        }
     }
-    var scanOpen by remember { mutableStateOf(false) }
-    val scan = rememberScanActions(vm) { go.toNow("doc/${DocKind.PURCHASE}/0") }
+    val waiting = remember(ofKind) {
+        ofKind.filter { it.status == DocStatus.UNPAID || it.status == DocStatus.OPEN }.sumOf { it.total }
+    }
+    val groups = remember(list) { list.groupBy { LocalDate.ofEpochDay(it.day).withDayOfMonth(1) } }
+    val monthFormat = remember { DateTimeFormatter.ofPattern("MMMM yyyy", Locale.getDefault()) }
 
     val addLabel = stringResource(
         when (kind) {
@@ -131,23 +166,19 @@ fun DocsScreen(vm: AppViewModel, go: Go) {
     )
     val onAdd: () -> Unit = {
         if (kind == DocKind.PURCHASE) {
-            scanOpen = true
+            vm.scanOpen = true
         } else {
             go.to("doc/$kind/0")
         }
     }
+    val filterLabels = if (kind == DocKind.QUOTATION) {
+        listOf(stringResource(R.string.all), stringResource(R.string.status_open), stringResource(R.string.status_accepted), stringResource(R.string.status_declined))
+    } else {
+        listOf(stringResource(R.string.all), stringResource(R.string.status_unpaid), stringResource(R.string.status_paid), stringResource(R.string.status_overdue))
+    }
 
     AppScreen(
         title = stringResource(R.string.tab_documents),
-        fab = {
-            ExtendedFloatingActionButton(
-                onClick = onAdd,
-                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-                text = { Text(addLabel) },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            )
-        },
         bottomBar = { BottomTabs("docs", go) },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
@@ -158,10 +189,13 @@ fun DocsScreen(vm: AppViewModel, go: Go) {
                     stringResource(R.string.purchases),
                 ),
                 selected = vm.docsTab,
-                onSelect = { vm.docsTab = it },
+                onSelect = {
+                    vm.docsTab = it
+                    vm.docsFilter = 0
+                },
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
-            if (list.isEmpty()) {
+            if (ofKind.isEmpty()) {
                 EmptyState(
                     icon = Icons.Outlined.Description,
                     title = stringResource(
@@ -182,66 +216,109 @@ fun DocsScreen(vm: AppViewModel, go: Go) {
                     onAction = onAdd,
                 )
             } else {
+                OutlinedTextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    placeholder = { Text(stringResource(R.string.search_documents)) },
+                    leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
+                    trailingIcon = {
+                        if (query.isNotEmpty()) {
+                            IconButton(onClick = { query = "" }) {
+                                Icon(Icons.Outlined.Close, contentDescription = stringResource(R.string.clear))
+                            }
+                        }
+                    },
+                    singleLine = true,
+                    shape = RoundedCornerShape(50),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                )
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    filterLabels.forEachIndexed { index, label ->
+                        FilterChip(
+                            selected = filter == index,
+                            onClick = { vm.docsFilter = index },
+                            label = { Text(label) },
+                            shape = RoundedCornerShape(50),
+                        )
+                    }
+                }
                 LazyColumn(
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 96.dp),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 2.dp, bottom = 24.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    if (waiting > 0) {
+                    if (waiting > 0 && filter == 0 && query.isBlank()) {
                         item(key = "waiting") {
+                            Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.secondaryContainer) {
+                                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        stringResource(if (kind == DocKind.QUOTATION) R.string.open_label else R.string.unpaid_label),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        modifier = Modifier.weight(1f),
+                                    )
+                                    Text(
+                                        Money.format(waiting) + " " + b.currency,
+                                        style = MaterialTheme.typography.titleMedium.tabular(),
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    if (list.isEmpty()) {
+                        item(key = "nothing") {
                             Text(
-                                stringResource(
-                                    if (kind == DocKind.QUOTATION) R.string.open_total else R.string.unpaid_total,
-                                    Money.format(waiting),
-                                    b.currency,
-                                ),
-                                style = MaterialTheme.typography.bodySmall,
+                                stringResource(R.string.nothing_matches),
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                                textAlign = TextAlign.Center,
                             )
                         }
                     }
-                    items(list, key = { it.id }) { doc ->
-                        DocRow(doc) { go.to("doc/${doc.kind}/${doc.id}") }
+                    for ((month, monthDocs) in groups) {
+                        item(key = "m" + month.toEpochDay()) {
+                            Row(Modifier.fillMaxWidth().padding(start = 4.dp, end = 4.dp, top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text(month.format(monthFormat), style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+                                Text(
+                                    Money.format(monthDocs.sumOf { it.total }),
+                                    style = MaterialTheme.typography.bodySmall.tabular(),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                        items(monthDocs, key = { it.id }) { doc ->
+                            DocRow(doc, today) {
+                                go.to(if (doc.kind == DocKind.PURCHASE) "doc/${doc.kind}/${doc.id}" else "preview/${doc.id}")
+                            }
+                        }
                     }
                 }
             }
         }
     }
-
-    if (scanOpen) {
-        ScanSheet(
-            onDismiss = { scanOpen = false },
-            onCamera = {
-                scanOpen = false
-                scan.camera()
-            },
-            onGallery = {
-                scanOpen = false
-                scan.gallery()
-            },
-            onManual = {
-                scanOpen = false
-                vm.pendingScan = null
-                go.to("doc/${DocKind.PURCHASE}/0")
-            },
-        )
-    }
 }
 
 @Composable
-private fun DocRow(doc: Doc, onClick: () -> Unit) {
-    val overdue = doc.status == DocStatus.UNPAID && doc.dueDay != null && doc.dueDay < today()
+private fun DocRow(doc: Doc, today: Long, onClick: () -> Unit) {
+    val overdue = doc.status == DocStatus.UNPAID && doc.dueDay != null && doc.dueDay < today
     Surface(onClick = onClick, shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface) {
-        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            InitialsAvatar(doc.partyName, 42)
+            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
                     doc.partyName.ifBlank { stringResource(R.string.no_name) },
                     style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(
-                    listOf(doc.number, formatDay(doc.day)).filter { it.isNotBlank() }.joinToString("  ·  "),
+                    listOf(doc.number, formatDay(doc.day)).filter { it.isNotBlank() }.joinToString("   "),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -594,7 +671,13 @@ fun DocEditorScreen(vm: AppViewModel, go: Go, kind: String, id: Long) {
             )
 
             Field(stringResource(R.string.notes), notes, { notes = it }, singleLine = false)
-            SaveButton(onClick = { save { _, _ -> go.back() } })
+            SaveButton(onClick = {
+                val isNew = docId == 0L
+                save { doc, _ ->
+                    // a new invoice or quotation goes straight to its preview, ready to share
+                    if (isNew && !isPurchase) go.replace("preview/${doc.id}") else go.back()
+                }
+            })
             Spacer(Modifier.height(8.dp))
         }
     }

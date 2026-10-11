@@ -3,23 +3,42 @@ package com.daftar.app.ui
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ReceiptLong
+import androidx.compose.material.icons.outlined.CameraAlt
+import androidx.compose.material.icons.outlined.NorthEast
+import androidx.compose.material.icons.outlined.RequestQuote
+import androidx.compose.material.icons.outlined.ShoppingBag
+import androidx.compose.material.icons.outlined.SouthWest
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.Lifecycle
@@ -36,7 +55,7 @@ import com.daftar.app.data.DocKind
 import com.daftar.app.data.TxnType
 
 /** The few navigation moves the screens need. */
-class Go(private val nav: NavHostController) {
+class Go(private val nav: NavHostController, private val onCreate: () -> Unit) {
     /** False while a screen is still fading in or out, so a second quick tap is ignored. */
     private fun settled(): Boolean =
         nav.currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED
@@ -68,22 +87,28 @@ class Go(private val nav: NavHostController) {
         }
     }
 
-    /** Replace the current screen (used after turning a quotation into an invoice). */
+    /** Replace the current screen (after saving a new invoice, show its preview instead). */
     fun replace(route: String) {
         backNow()
         nav.navigate(route)
     }
+
+    /** Opens the "create something" sheet behind the centre + button. */
+    fun create() = onCreate()
 }
 
 @Composable
-fun AppRoot(vm: AppViewModel = viewModel()) {
+fun AppRoot(vm: AppViewModel = viewModel(), demo: Boolean = false, startRoute: String? = null) {
     val businesses by vm.businesses.collectAsState()
     val list = businesses
+    LaunchedEffect(demo, list == null) {
+        if (demo && list != null && list.isEmpty()) vm.seedDemo()
+    }
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         when {
             list == null -> Unit
-            list.isEmpty() -> BusinessEditorScreen(vm, id = 0L, onDone = {}, onboarding = true)
-            else -> AppNav(vm)
+            list.isEmpty() -> if (!demo) BusinessEditorScreen(vm, id = 0L, onDone = {}, onboarding = true)
+            else -> AppNav(vm, startRoute)
         }
     }
     if (vm.scanning) {
@@ -99,11 +124,13 @@ fun AppRoot(vm: AppViewModel = viewModel()) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun AppNav(vm: AppViewModel) {
+private fun AppNav(vm: AppViewModel, startRoute: String?) {
     val nav = rememberNavController()
-    val go = remember(nav) { Go(nav) }
+    val go = remember(nav) { Go(nav) { vm.createOpen = true } }
     val idArg = listOf(navArgument("id") { type = NavType.LongType })
+    val scan = rememberScanActions(vm) { go.toNow("doc/${DocKind.PURCHASE}/0") }
 
     NavHost(
         navController = nav,
@@ -125,6 +152,9 @@ private fun AppNav(vm: AppViewModel) {
                 kind = entry.arguments?.getString("kind") ?: DocKind.INVOICE,
                 id = entry.arguments?.getLong("id") ?: 0L,
             )
+        }
+        composable("preview/{id}", arguments = idArg) { entry ->
+            DocPreviewScreen(vm, go, entry.arguments?.getLong("id") ?: 0L)
         }
         composable("txn/{type}/{id}", arguments = idArg) { entry ->
             TxnEditorScreen(
@@ -150,6 +180,106 @@ private fun AppNav(vm: AppViewModel) {
         composable("settings") { SettingsScreen(vm, go) }
         composable("business/{id}", arguments = idArg) { entry ->
             BusinessEditorScreen(vm, id = entry.arguments?.getLong("id") ?: 0L, onDone = { go.back() }, onBack = { go.back() })
+        }
+    }
+
+    // Screenshot support: open a given screen straight after launch.
+    LaunchedEffect(startRoute) {
+        if (!startRoute.isNullOrBlank() && startRoute != "home") {
+            when (startRoute) {
+                "create" -> vm.createOpen = true
+                "docs", "money", "more" -> go.tab(startRoute)
+                else -> go.toNow(startRoute)
+            }
+        }
+    }
+
+    if (vm.createOpen) {
+        ModalBottomSheet(onDismissRequest = { vm.createOpen = false }, containerColor = MaterialTheme.colorScheme.surface) {
+            Column(
+                Modifier.navigationBarsPadding().padding(start = 16.dp, end = 16.dp, bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                Text(
+                    stringResource(R.string.create_new),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.padding(horizontal = 4.dp).padding(bottom = 4.dp),
+                )
+                val money = LocalMoneyColors.current
+                val open: (String) -> Unit = { route ->
+                    vm.createOpen = false
+                    go.toNow(route)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    CreateTile(Icons.AutoMirrored.Outlined.ReceiptLong, stringResource(R.string.new_invoice), stringResource(R.string.create_invoice_hint), MaterialTheme.colorScheme.primary, Modifier.weight(1f)) {
+                        open("doc/${DocKind.INVOICE}/0")
+                    }
+                    CreateTile(Icons.Outlined.RequestQuote, stringResource(R.string.new_quotation), stringResource(R.string.create_quote_hint), MaterialTheme.colorScheme.primary, Modifier.weight(1f)) {
+                        open("doc/${DocKind.QUOTATION}/0")
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    CreateTile(Icons.Outlined.CameraAlt, stringResource(R.string.action_scan), stringResource(R.string.create_scan_hint), MaterialTheme.colorScheme.tertiary, Modifier.weight(1f)) {
+                        vm.createOpen = false
+                        vm.scanOpen = true
+                    }
+                    CreateTile(Icons.Outlined.ShoppingBag, stringResource(R.string.add_purchase), stringResource(R.string.create_purchase_hint), MaterialTheme.colorScheme.tertiary, Modifier.weight(1f)) {
+                        vm.pendingScan = null
+                        open("doc/${DocKind.PURCHASE}/0")
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    CreateTile(Icons.Outlined.NorthEast, stringResource(R.string.add_expense), stringResource(R.string.create_expense_hint), money.negative, Modifier.weight(1f)) {
+                        open("txn/${TxnType.EXPENSE}/0")
+                    }
+                    CreateTile(Icons.Outlined.SouthWest, stringResource(R.string.add_income), stringResource(R.string.create_income_hint), money.positive, Modifier.weight(1f)) {
+                        open("txn/${TxnType.INCOME}/0")
+                    }
+                }
+            }
+        }
+    }
+
+    if (vm.scanOpen) {
+        ScanSheet(
+            onDismiss = { vm.scanOpen = false },
+            onCamera = {
+                vm.scanOpen = false
+                scan.camera()
+            },
+            onGallery = {
+                vm.scanOpen = false
+                scan.gallery()
+            },
+            onManual = {
+                vm.scanOpen = false
+                vm.pendingScan = null
+                go.toNow("doc/${DocKind.PURCHASE}/0")
+            },
+        )
+    }
+}
+
+@Composable
+private fun CreateTile(icon: ImageVector, title: String, hint: String, tint: Color, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier,
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    ) {
+        Column(Modifier.fillMaxWidth().padding(14.dp)) {
+            IconBadge(icon, tint)
+            Spacer(Modifier.height(10.dp))
+            Text(title, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                hint,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                minLines = 2,
+            )
         }
     }
 }

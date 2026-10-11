@@ -10,6 +10,9 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Transaction
 import androidx.room.Update
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
+import java.io.File
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -292,14 +295,14 @@ abstract class AppDao {
         clearLoans()
         clearShareholders()
         clearBusinesses()
-        restoreBusinesses(backup.businesses)
+        // logos and scanned photos live outside the backup file; keep a link only if the file is here
+        restoreBusinesses(backup.businesses.map { b -> b.copy(logoPath = b.logoPath?.takeIf { File(it).exists() }) })
         restoreShareholders(backup.shareholders)
         restoreLoans(backup.loans)
         restoreLoanPayments(backup.loanPayments)
         restoreTxns(backup.txns)
         restoreProducts(backup.products)
-        // scanned photos are not part of a backup file
-        restoreDocs(backup.docs.map { it.copy(imagePath = null) })
+        restoreDocs(backup.docs.map { d -> d.copy(imagePath = d.imagePath?.takeIf { File(it).exists() }) })
         restoreDocLines(backup.lines)
     }
 }
@@ -309,7 +312,7 @@ abstract class AppDao {
         Business::class, Shareholder::class, Loan::class, LoanPayment::class,
         Txn::class, Product::class, Doc::class, DocLine::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -319,8 +322,18 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var instance: AppDatabase? = null
 
+        /** Version 2 adds the business logo and the "imported from" fields on documents. */
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE businesses ADD COLUMN logoPath TEXT")
+                db.execSQL("ALTER TABLE docs ADD COLUMN source TEXT")
+                db.execSQL("ALTER TABLE docs ADD COLUMN externalId TEXT")
+            }
+        }
+
         fun get(context: Context): AppDatabase = instance ?: synchronized(this) {
             instance ?: Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, "daftar.db")
+                .addMigrations(MIGRATION_1_2)
                 .build()
                 .also { instance = it }
         }

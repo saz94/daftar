@@ -1,6 +1,7 @@
 package com.daftar.app.ui
 
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
@@ -33,6 +35,8 @@ import androidx.compose.material.icons.outlined.Storefront
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -217,6 +221,10 @@ fun BusinessEditorScreen(
     var invoicePrefix by rememberSaveable(key) { mutableStateOf(existing?.invoicePrefix ?: "INV-") }
     var quotePrefix by rememberSaveable(key) { mutableStateOf(existing?.quotePrefix ?: "QUO-") }
     var colorIndex by rememberSaveable(key) { mutableStateOf(existing?.colorIndex ?: (all.size % BusinessColors.size)) }
+    var logoPath by rememberSaveable(key) { mutableStateOf(existing?.logoPath) }
+    val pickLogo = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) vm.importLogo(uri) { path -> if (path != null) logoPath = path }
+    }
     var showErrors by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
 
@@ -270,6 +278,36 @@ fun BusinessEditorScreen(
                 Field(stringResource(R.string.vat_rate), vatRate, { vatRate = it }, Modifier.weight(1f), keyboard = KeyboardType.Decimal, suffix = "%")
             }
 
+            // ---- optional logo
+            Panel(Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BusinessAvatar(Business(name = name.ifBlank { "?" }, colorIndex = colorIndex, logoPath = logoPath), 60)
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(stringResource(R.string.logo), style = MaterialTheme.typography.titleSmall)
+                        Text(
+                            stringResource(R.string.logo_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedButton(
+                        onClick = { pickLogo.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                        shape = FieldShape,
+                    ) {
+                        Text(stringResource(if (logoPath == null) R.string.logo_choose else R.string.logo_change))
+                    }
+                    if (logoPath != null) {
+                        TextButton(onClick = { logoPath = null }) {
+                            Text(stringResource(R.string.remove), color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+            }
+
             SectionLabel(stringResource(R.string.colour))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 BusinessColors.forEachIndexed { index, color ->
@@ -317,6 +355,7 @@ fun BusinessEditorScreen(
                                 invoicePrefix = invoicePrefix.trim(),
                                 quotePrefix = quotePrefix.trim(),
                                 colorIndex = colorIndex,
+                                logoPath = logoPath,
                             ),
                             onDone,
                         )

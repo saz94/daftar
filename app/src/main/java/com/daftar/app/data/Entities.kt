@@ -43,6 +43,8 @@ data class Business(
     val nextQuoteNo: Int = 1,
     val colorIndex: Int = 0,
     val createdAt: Long = 0,
+    /** Optional logo, stored inside the app. Shown in the app and on invoices and quotations. */
+    val logoPath: String? = null,
 )
 
 @Serializable
@@ -135,6 +137,10 @@ data class Doc(
     val total: Long = 0,
     /** Photo of the original paper invoice, when it was imported from a picture. */
     val imagePath: String? = null,
+    /** Where the document came from when it was not typed in here, e.g. "shopify". */
+    val source: String? = null,
+    /** The document's id in that other system, so the same order is never imported twice. */
+    val externalId: String? = null,
 )
 
 /** Amount excluding VAT, after discount. */

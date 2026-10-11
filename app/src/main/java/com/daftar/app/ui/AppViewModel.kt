@@ -1,6 +1,8 @@
 package com.daftar.app.ui
 
 import android.app.Application
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -23,6 +25,7 @@ import com.daftar.app.data.Shareholder
 import com.daftar.app.data.Txn
 import com.daftar.app.data.TxnType
 import com.daftar.app.data.net
+import com.daftar.app.data.seedDemo
 import com.daftar.app.domain.InvoiceParser
 import com.daftar.app.domain.ParsedInvoice
 import com.daftar.app.domain.Period
@@ -125,7 +128,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     // ---- screen state that should survive moving between tabs
     var period by mutableStateOf(Period())
     var docsTab by mutableIntStateOf(0)
+    /** Which filter chip is on in the documents list; see matchesFilter. */
+    var docsFilter by mutableIntStateOf(0)
     var moneyTab by mutableIntStateOf(0)
+
+    /** The "create something" sheet behind the centre + button, and the scan-a-bill sheet. */
+    var createOpen by mutableStateOf(false)
+    var scanOpen by mutableStateOf(false)
 
     // ---- businesses
     fun selectBusiness(id: Long) = prefs.setCurrentBusiness(id)
@@ -186,6 +195,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun saveDoc(doc: Doc, lines: List<DocLine>, onSaved: (Long) -> Unit) = viewModelScope.launch {
         onSaved(dao.saveDoc(doc, lines))
     }
+
+    fun setDocStatus(id: Long, status: String) = viewModelScope.launch { dao.setDocStatus(id, status) }
 
     fun deleteDoc(doc: Doc, onDone: () -> Unit) = viewModelScope.launch {
         dao.deleteDoc(doc.id)
@@ -255,6 +266,38 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         } else {
             scanning = false
         }
+    }
+
+    /** Screenshot support only; see data/Demo.kt. */
+    fun seedDemo() = viewModelScope.launch { dao.seedDemo() }
+
+    // ---- logo
+    /** Copies a chosen picture into the app as a small PNG and returns its path, or null. */
+    fun importLogo(uri: Uri, onDone: (String?) -> Unit) = viewModelScope.launch {
+        val path = withContext(Dispatchers.IO) {
+            try {
+                val app = getApplication<Application>()
+                val bounds = BitmapFactory.Options()
+                bounds.inJustDecodeBounds = true
+                app.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
+                var sample = 1
+                while (maxOf(bounds.outWidth, bounds.outHeight) / sample > 1200) sample *= 2
+                val options = BitmapFactory.Options()
+                options.inSampleSize = sample
+                val bitmap = app.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, options) }
+                if (bitmap == null) {
+                    null
+                } else {
+                    val dir = File(app.filesDir, "logos").apply { mkdirs() }
+                    val file = File(dir, "logo_" + System.currentTimeMillis() + ".png")
+                    file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                    file.absolutePath
+                }
+            } catch (e: Throwable) {
+                null
+            }
+        }
+        onDone(path)
     }
 
     // ---- backup
