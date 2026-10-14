@@ -300,11 +300,13 @@
     <string name="widget_actions_description">New invoice, scan a bill, add expense or income</string>
     <string name="widget_empty">Open Daftar to add your first business.</string>
     <string name="widget_locked_title">Figures hidden</string>
-    <string name="widget_locked_body">App lock is on. Tap to open Daftar.</string>
+    <string name="widget_locked_body">App lock is on. Tap to open Daftar, or turn on figures in Settings.</string>
     <string name="widget_invoice">Invoice</string>
     <string name="widget_scan">Scan</string>
     <string name="widget_expense">Expense</string>
     <string name="widget_income">Income</string>
+    <string name="widget_show_figures">Show figures on the widget</string>
+    <string name="widget_show_figures_hint">Even while the app is locked. Anyone who sees your home screen can read them.</string>
     <string-array name="expense_categories">
         <item>Rent</item>
         <item>Salaries</item>

@@ -43,6 +43,11 @@ class Prefs(context: Context) {
         get() = store.getBoolean(KEY_BIOMETRIC, false)
         set(value) = store.edit().putBoolean(KEY_BIOMETRIC, value).apply()
 
+    /** Show figures on the home-screen widget even while the app lock is on. */
+    var widgetShowFigures: Boolean
+        get() = store.getBoolean(KEY_WIDGET_FIGURES, false)
+        set(value) = store.edit().putBoolean(KEY_WIDGET_FIGURES, value).apply()
+
     fun setPin(pin: String) {
         val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
         store.edit()
@@ -73,6 +78,7 @@ class Prefs(context: Context) {
         private const val KEY_PIN_SALT = "pin_salt"
         private const val KEY_PIN_LENGTH = "pin_length"
         private const val KEY_BIOMETRIC = "biometric_unlock"
+        private const val KEY_WIDGET_FIGURES = "widget_show_figures"
         private const val KEY_BUSINESS = "current_business"
         private const val KEY_THEME = "theme"
         const val THEME_SYSTEM = "system"

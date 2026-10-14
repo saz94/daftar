@@ -28,6 +28,7 @@ import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Fingerprint
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Pin
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.Widgets
 import androidx.compose.material.icons.outlined.Groups
 import androidx.compose.material.icons.outlined.Inventory2
@@ -135,6 +136,7 @@ fun SettingsScreen(vm: AppViewModel, go: Go) {
     var message by remember { mutableStateOf<Int?>(null) }
     var confirmRestore by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    var widgetFigures by remember { mutableStateOf(vm.prefs.widgetShowFigures) }
     var biometricOn by remember(vm.lockEnabled) { mutableStateOf(vm.prefs.biometricUnlock) }
     val biometricTitle = stringResource(R.string.lock_biometric_confirm)
     val cancelLabel = stringResource(R.string.cancel)
@@ -245,6 +247,24 @@ fun SettingsScreen(vm: AppViewModel, go: Go) {
                         onClick = { requestPinWidget(context, snapshot = false) },
                         leading = { IconBadge(Icons.Outlined.Widgets) },
                     )
+                    if (vm.lockEnabled) {
+                        RowDivider()
+                        ListRow(
+                            title = stringResource(R.string.widget_show_figures),
+                            subtitle = stringResource(R.string.widget_show_figures_hint),
+                            leading = { IconBadge(Icons.Outlined.Visibility) },
+                            trailing = {
+                                Switch(
+                                    checked = widgetFigures,
+                                    onCheckedChange = { on ->
+                                        vm.prefs.widgetShowFigures = on
+                                        widgetFigures = on
+                                        vm.refreshWidgets()
+                                    },
+                                )
+                            },
+                        )
+                    }
                 }
             }
 

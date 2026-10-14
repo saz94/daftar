@@ -112,7 +112,7 @@ private suspend fun loadSnapshot(context: Context): Snapshot? = withContext(Disp
         income = summary.income,
         expenses = summary.expenses,
         unpaid = docs.filter { it.kind == DocKind.INVOICE && it.status == DocStatus.UNPAID }.sumOf { it.total },
-        hidden = prefs.hasPin,
+        hidden = prefs.hasPin && !prefs.widgetShowFigures,
     )
 }
 

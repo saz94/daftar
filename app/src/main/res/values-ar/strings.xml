@@ -300,11 +300,13 @@
     <string name="widget_actions_description">فاتورة جديدة، مسح فاتورة، إضافة مصروف أو إيراد</string>
     <string name="widget_empty">افتح دفتر لإضافة نشاطك الأول.</string>
     <string name="widget_locked_title">الأرقام مخفية</string>
-    <string name="widget_locked_body">قفل التطبيق مفعّل. اضغط لفتح دفتر.</string>
+    <string name="widget_locked_body">قفل التطبيق مفعّل. اضغط لفتح دفتر، أو فعّل الأرقام من الإعدادات.</string>
     <string name="widget_invoice">فاتورة</string>
     <string name="widget_scan">مسح</string>
     <string name="widget_expense">مصروف</string>
     <string name="widget_income">إيراد</string>
+    <string name="widget_show_figures">إظهار الأرقام في الأداة</string>
+    <string name="widget_show_figures_hint">حتى عندما يكون التطبيق مقفلًا. يمكن لأي شخص يرى شاشتك الرئيسية قراءتها.</string>
     <string-array name="expense_categories">
         <item>الإيجار</item>
         <item>الرواتب</item>
