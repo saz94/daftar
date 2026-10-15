@@ -63,10 +63,11 @@ unfold_device() {
   echo "unfolded width: $(wm_w)"
 }
 state_id() { grep -o "identifier=[0-9]*, name='$1'" "$OUT/device_states.txt" | grep -o "[0-9]*" | head -1; }
-# the emulator's own posture is what androidx.window reports as a FoldingFeature; the device-state
-# override does not produce one, so it is not used here
-half_open() { adb emu posture 2 >/dev/null 2>&1; sleep 6; }
-flat_open() { adb emu posture 3 >/dev/null 2>&1; sleep 4; }
+# Half-open on these emulator images: the emulator posture plus the device-state override with
+# id 1 is the combination that makes androidx.window report a HALF_OPENED FoldingFeature here
+# (found by trying; the posture alone reports nothing).
+half_open() { adb emu posture 2 >/dev/null 2>&1; adb shell cmd device_state state 1 >/dev/null 2>&1; sleep 6; }
+flat_open() { adb shell cmd device_state state reset >/dev/null 2>&1; adb emu posture 3 >/dev/null 2>&1; sleep 4; }
 
 shot home warmup 25
 
