@@ -59,11 +59,13 @@ jobs:
           arch: x86_64
           target: google_apis
           profile: pixel_6
+          emulator-boot-timeout: 900
           disable-animations: false
-          script: bash ci/screens.sh
+          script: bash ci/screens.sh 2>&1 | tee shots/run.txt
       - name: Publish the screenshots to the "screenshots" branch
+        if: always()
         run: |
-          mkdir /tmp/pub && cp shots/* /tmp/pub/
+          mkdir /tmp/pub && cp shots/* /tmp/pub/ || true
           cd /tmp/pub
           git init -q -b screenshots
           git config user.name "github-actions"
