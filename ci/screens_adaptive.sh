@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-# ci/screens_adaptive.sh TAG FOLDABLE(0|1)
+# ci/screens_adaptive.sh TAG FOLDABLE(0|1) [TABLETOP_ROT]
+# TABLETOP_ROT is the rotation in which a half-open device has its hinge across the middle:
+# 1 (landscape) for a book-style foldable, 0 (portrait) for a flip-style one.
 # Photographs the cover and inner experiences on a foldable or tablet emulator, and checks that
 # folding keeps the app alive (same process) with its state (text typed into the search box).
 set -u
-TAG=$1; FOLDABLE=$2
+TAG=$1; FOLDABLE=$2; TABLETOP_ROT=${3:-1}
+if [ "$TABLETOP_ROT" = 1 ]; then BOOK_ROT=0; else BOOK_ROT=1; fi
 APK=app/build/outputs/apk/debug/app-debug.apk
 OUT=shots-$TAG
 mkdir -p "$OUT"
@@ -68,11 +71,12 @@ if [ "$FOLDABLE" = 1 ]; then
 
   # ---- half open like a book (hinge top to bottom): panes split on the hinge
   adb emu posture 2; sleep 6
+  rotate $BOOK_ROT
   shot docs book_docs_empty; tap_text "Desert Rose"; snap book_docs 8
   shot home book_home
 
-  # ---- tabletop: half open and turned on its side (hinge across the middle)
-  rotate 1
+  # ---- tabletop: half open with the hinge across the middle
+  rotate $TABLETOP_ROT
   shot home tabletop_home 12
   shot lock tabletop_lock
   shot docs tabletop_docs
