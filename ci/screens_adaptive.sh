@@ -24,7 +24,7 @@ shot() { # route name [wait]
   echo "captured $2"
 }
 snap() { sleep "${2:-3}"; adb exec-out screencap -p > "$OUT/$1.png"; echo "captured $1"; }
-rotate() { adb shell settings put system user_rotation "$1"; sleep 4; }
+rotate() { adb shell settings put system user_rotation "$1"; adb shell wm user-rotation lock "$1" >/dev/null 2>&1 || true; sleep 5; }
 screen_text() { adb shell uiautomator dump /sdcard/ui.xml >/dev/null 2>&1; adb exec-out cat /sdcard/ui.xml > /tmp/ui.xml || true; }
 tap_text() { # taps the centre of the element whose text contains this
   screen_text

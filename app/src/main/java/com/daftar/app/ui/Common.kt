@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -501,7 +502,10 @@ fun EmptyState(
 /** Text tabs with a gradient underline under the chosen one, like "Daily  Weekly  Monthly". */
 @Composable
 fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
-    Row(modifier = modifier.fillMaxWidth()) {
+    BoxWithConstraints(modifier.fillMaxWidth()) {
+        // smaller labels when the tabs are squeezed into a narrow pane
+        val tight = maxWidth / options.size < 92.dp
+        Row(Modifier.fillMaxWidth()) {
         options.forEachIndexed { index, label ->
             val on = index == selected
             Column(
@@ -514,11 +518,12 @@ fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, mod
             ) {
                 Text(
                     label,
-                    style = MaterialTheme.typography.labelLarge,
+                    style = if (tight) MaterialTheme.typography.labelMedium else MaterialTheme.typography.labelLarge,
                     color = if (on) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(horizontal = 4.dp),
+                    softWrap = false,
+                    modifier = Modifier.padding(horizontal = if (tight) 1.dp else 4.dp),
                 )
                 Spacer(Modifier.height(9.dp))
                 Box(
@@ -535,6 +540,7 @@ fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, mod
                         ),
                 )
             }
+        }
         }
     }
 }

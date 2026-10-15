@@ -108,6 +108,7 @@ jobs:
           target: google_apis
           profile: ${{ matrix.profile }}
           emulator-boot-timeout: 900
+          pre-emulator-launch-script: bash ci/avd_hinge.sh "${{ matrix.profile }}"
           disable-animations: false
           script: bash ci/screens_adaptive.sh ${{ matrix.tag }} ${{ matrix.foldable }} ${{ matrix.tabletop_rot }} 2>&1 | tee shots-${{ matrix.tag }}/run.txt
       - name: Publish to the "screenshots-${{ matrix.tag }}" branch

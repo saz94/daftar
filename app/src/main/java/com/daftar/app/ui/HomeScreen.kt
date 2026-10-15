@@ -656,9 +656,19 @@ private fun HeroCard(
             }
         }
         Spacer(Modifier.height(16.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            HeroFigure(stringResource(R.string.income), summary.income, warm = false, modifier = Modifier.weight(1f))
-            HeroFigure(stringResource(R.string.expenses), summary.expenses, warm = true, modifier = Modifier.weight(1f))
+        // side by side when there is room, one under the other in a narrow pane
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            if (maxWidth < 340.dp) {
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    HeroFigure(stringResource(R.string.income), summary.income, warm = false, modifier = Modifier.fillMaxWidth())
+                    HeroFigure(stringResource(R.string.expenses), summary.expenses, warm = true, modifier = Modifier.fillMaxWidth())
+                }
+            } else {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    HeroFigure(stringResource(R.string.income), summary.income, warm = false, modifier = Modifier.weight(1f))
+                    HeroFigure(stringResource(R.string.expenses), summary.expenses, warm = true, modifier = Modifier.weight(1f))
+                }
+            }
         }
     }
 }
