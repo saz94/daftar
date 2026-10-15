@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -44,6 +45,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.daftar.app.R
@@ -104,6 +106,8 @@ fun DocPreviewScreen(vm: AppViewModel, go: Go, id: Long) {
 
     val current = doc
     val today = today()
+    // the detail pane of a two-pane layout can be too narrow for two buttons in a row
+    val narrow = LocalEmbedded.current
     AppScreen(
         title = current?.number ?: "",
         onBack = { go.back() },
@@ -160,9 +164,12 @@ fun DocPreviewScreen(vm: AppViewModel, go: Go, id: Long) {
 
             if (current != null) {
                 Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 12.dp) {
-                    Row(
+                    // the two buttons sit side by side, or one above the other in a narrow pane
+                    FlowRow(
                         Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        maxItemsInEachRow = if (narrow) 1 else 2,
                     ) {
                         val unpaidInvoice = current.kind == DocKind.INVOICE && current.status == DocStatus.UNPAID
                         val openQuote = current.kind == DocKind.QUOTATION && current.status != DocStatus.ACCEPTED
@@ -187,7 +194,7 @@ fun DocPreviewScreen(vm: AppViewModel, go: Go, id: Long) {
                                 modifier = Modifier.weight(1f).height(52.dp),
                                 shape = RoundedCornerShape(14.dp),
                             ) {
-                                Text(stringResource(nextLabel), maxLines = 1)
+                                Text(stringResource(nextLabel), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             }
                         }
                         Button(
@@ -206,7 +213,7 @@ fun DocPreviewScreen(vm: AppViewModel, go: Go, id: Long) {
                             shape = RoundedCornerShape(14.dp),
                         ) {
                             Icon(Icons.Outlined.Share, contentDescription = null)
-                            Text(stringResource(R.string.share_pdf), maxLines = 1, modifier = Modifier.padding(start = 8.dp))
+                            Text(stringResource(R.string.share_pdf), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(start = 8.dp))
                         }
                     }
                 }

@@ -7,6 +7,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.ColumnScope
@@ -616,23 +617,19 @@ private fun HeroCard(
         orb(184.dp)
 
         Text(
-            stringResource(R.string.net_profit),
+            stringResource(R.string.net_profit) + "  " + currency,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        Row(verticalAlignment = Alignment.Bottom) {
-            Text(
-                LTR_MARK + Money.format(summary.profit),
-                style = MaterialTheme.typography.displayLarge.tabular(),
-                maxLines = 1,
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                currency,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 12.dp),
-            )
+        // the figure shrinks to fit a narrow pane instead of wrapping
+        BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            val digits = Money.format(summary.profit).length
+            val style = when {
+                maxWidth < (digits * 30).dp -> MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Light)
+                maxWidth < (digits * 38).dp -> MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Light)
+                else -> MaterialTheme.typography.displayLarge
+            }
+            Text(LTR_MARK + Money.format(summary.profit), style = style.tabular(), maxLines = 1, softWrap = false)
         }
         if (previous != null && previous.profit > 0L && summary.profit > 0L) {
             val change = (summary.profit - previous.profit) * 100.0 / abs(previous.profit)
