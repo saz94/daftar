@@ -126,6 +126,7 @@ fun AppScreen(
         floatingActionButton = fab,
         bottomBar = bottomBar,
         containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onBackground,
         content = content,
     )
 }

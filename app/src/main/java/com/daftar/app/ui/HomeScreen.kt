@@ -299,6 +299,7 @@ fun HomeScreen(vm: AppViewModel, go: Go) {
         },
         bottomBar = { BottomTabs("home", go) },
         containerColor = Color.Transparent,
+        contentColor = MaterialTheme.colorScheme.onBackground,
     ) { padding ->
         Column(
             modifier = Modifier

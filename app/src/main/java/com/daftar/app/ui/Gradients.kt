@@ -18,7 +18,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -62,8 +64,10 @@ fun GlowBackground(modifier: Modifier = Modifier, content: @Composable BoxScope.
                     ),
                 )
             },
-        content = content,
-    )
+    ) {
+        // text drawn straight on this background must use the theme's text colour, not black
+        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onBackground) { content() }
+    }
 }
 
 /** Small rounded pill: gradient when chosen, quiet when not. Like the day pills in the reference. */
@@ -95,10 +99,19 @@ fun GradientChip(label: String, selected: Boolean, onClick: () -> Unit, warm: Bo
 /** A filled gradient circle with a soft halo, used for the one headline figure on a screen. */
 @Composable
 fun GlowOrb(size: Dp, modifier: Modifier = Modifier, warm: Boolean = false, content: @Composable BoxScope.() -> Unit) {
-    val brush = if (warm) WarmGradient else BrandGradient
     Box(modifier.size(size + 36.dp), contentAlignment = Alignment.Center) {
-        // the halo: the same gradient, blurred (ignored on Android 11 and older, where it just isn't drawn soft)
-        Box(Modifier.size(size).blur(28.dp).clip(CircleShape).background(brush, alpha = 0.55f))
+        // the halo: a soft radial light in the gradient's colours, fading out past the circle's edge
+        val haloColor = if (warm) Pink else Teal
+        Canvas(Modifier.fillMaxSize()) {
+            drawCircle(
+                Brush.radialGradient(
+                    0.55f to haloColor.copy(alpha = 0.45f),
+                    1f to Color.Transparent,
+                    center = center,
+                    radius = this.size.minDimension / 2,
+                ),
+            )
+        }
         Box(
             Modifier.size(size).clip(CircleShape).background(
                 Brush.linearGradient(
