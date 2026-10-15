@@ -7,6 +7,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -263,7 +266,9 @@ fun HomeScreen(vm: AppViewModel, go: Go) {
         all.sortedWith(compareByDescending<Activity> { it.day }.thenByDescending { it.id }).take(6)
     }
 
+    TabFrame("home", go) { bottomBar ->
     Scaffold(
+        bottomBar = bottomBar,
         topBar = {
             TopAppBar(
                 title = {
@@ -297,21 +302,16 @@ fun HomeScreen(vm: AppViewModel, go: Go) {
                 ),
             )
         },
-        bottomBar = { BottomTabs("home", go) },
         containerColor = Color.Transparent,
         contentColor = MaterialTheme.colorScheme.onBackground,
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
+        val layout = LocalWindowLayout.current
+        // the glance: period, orb, net profit, income and expenses
+        val hero: @Composable ColumnScope.(horizontal: Boolean) -> Unit = { horizontal ->
             PeriodBar(period, onChange = { vm.period = it }, showStepper = false)
 
             HeroCard(
+                horizontal = horizontal,
                 period = period,
                 onPeriod = { vm.period = it },
                 currency = b.currency,
@@ -320,6 +320,9 @@ fun HomeScreen(vm: AppViewModel, go: Go) {
                 previousLabel = if (period.type == PeriodType.ALL) "" else period.copy(offset = period.offset - 1).label(),
             )
 
+        }
+        // everything below the glance
+        val details: @Composable ColumnScope.() -> Unit = {
             SectionLabel(stringResource(R.string.by_month))
             Panel(Modifier.fillMaxWidth()) {
                 MonthBars(months)
@@ -418,8 +421,9 @@ fun HomeScreen(vm: AppViewModel, go: Go) {
                     }
                 }
             }
-            Spacer(Modifier.height(12.dp))
         }
+        HomeBody(padding, layout, hero, details)
+    }
     }
 
     if (switcherOpen) {
@@ -467,6 +471,54 @@ fun HomeScreen(vm: AppViewModel, go: Go) {
     }
 }
 
+/**
+ * Cover: one column, the glance first. Inner: the glance in a pane on the start side and the
+ * details beside it, each scrolling on its own. Tabletop: the glance above the hinge, details below.
+ */
+@Composable
+private fun HomeBody(
+    padding: PaddingValues,
+    layout: WindowLayout,
+    hero: @Composable ColumnScope.(horizontal: Boolean) -> Unit,
+    details: @Composable ColumnScope.() -> Unit,
+) {
+    @Composable
+    fun scroller(content: @Composable ColumnScope.() -> Unit) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            content()
+            Spacer(Modifier.height(12.dp))
+        }
+    }
+    Box(Modifier.fillMaxSize().padding(padding)) {
+        TabletopSplit(
+            top = { scroller { hero(true) } },
+            bottom = { scroller { details() } },
+            whole = {
+                if (layout.expanded) {
+                    TwoPane(
+                        first = { scroller { hero(false) } },
+                        second = { scroller { details() } },
+                        fraction = 0.42f,
+                        minFirst = 340.dp,
+                        maxFirst = 460.dp,
+                    )
+                } else {
+                    scroller {
+                        hero(false)
+                        details()
+                    }
+                }
+            },
+        )
+    }
+}
+
 @Composable
 private fun AmountWithChevron(minor: Long) {
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -494,10 +546,52 @@ private fun HeroCard(
     summary: Summary,
     previous: Summary?,
     previousLabel: String,
+    /** Orb beside the figures instead of above them: for the short pane above a tabletop hinge. */
+    horizontal: Boolean = false,
 ) {
     val money = LocalMoneyColors.current
     val margin = if (summary.income > 0L) (summary.profit * 100.0 / summary.income) else null
     val loss = summary.profit < 0L
+    val orb: @Composable (Dp) -> Unit = { size ->
+        GlowOrb(size = size, warm = loss) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 18.dp)) {
+                Text(
+                    if (margin == null) "–" else LTR_MARK + margin.roundToInt().coerceIn(-999, 999).toString() + "%",
+                    style = (if (size < 170.dp) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.displaySmall).copy(fontWeight = FontWeight.SemiBold),
+                    color = OnGradient,
+                    maxLines = 1,
+                )
+                Text(
+                    stringResource(R.string.profit_margin),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = OnGradient.copy(alpha = 0.75f),
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                )
+            }
+        }
+    }
+    if (horizontal) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            orb(140.dp)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    if (period.type == PeriodType.ALL) stringResource(R.string.period_all) else period.label(),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(stringResource(R.string.net_profit), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(LTR_MARK + Money.format(summary.profit) + " " + currency, style = MaterialTheme.typography.headlineMedium.tabular(), maxLines = 1)
+                Spacer(Modifier.height(8.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    HeroFigure(stringResource(R.string.income), summary.income, warm = false, modifier = Modifier.weight(1f))
+                    HeroFigure(stringResource(R.string.expenses), summary.expenses, warm = true, modifier = Modifier.weight(1f))
+                }
+            }
+        }
+        return
+    }
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         // calendar-style header: < October 2026 >
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -519,23 +613,7 @@ private fun HeroCard(
             }
         }
 
-        GlowOrb(size = 184.dp, warm = loss) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 18.dp)) {
-                Text(
-                    if (margin == null) "–" else LTR_MARK + margin.roundToInt().coerceIn(-999, 999).toString() + "%",
-                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = OnGradient,
-                    maxLines = 1,
-                )
-                Text(
-                    stringResource(R.string.profit_margin),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = OnGradient.copy(alpha = 0.75f),
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                )
-            }
-        }
+        orb(184.dp)
 
         Text(
             stringResource(R.string.net_profit),

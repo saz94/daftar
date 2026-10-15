@@ -45,6 +45,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.key
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -73,11 +75,12 @@ import java.time.LocalDate
 // ------------------------------------------------------------------ "More" tab
 
 @Composable
-private fun MenuRow(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
+private fun MenuRow(icon: ImageVector, title: String, subtitle: String, selected: Boolean = false, onClick: () -> Unit) {
     ListRow(
         title = title,
         subtitle = subtitle,
         onClick = onClick,
+        selected = selected,
         leading = { IconBadge(icon) },
         trailing = {
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -90,28 +93,68 @@ fun MoreScreen(vm: AppViewModel, go: Go) {
     val business by vm.business.collectAsState()
     val b = business ?: return
 
-    AppScreen(title = stringResource(R.string.tab_more), bottomBar = { BottomTabs("more", go) }) { padding ->
+    val expanded = isExpanded()
+    // on the cover each section opens full screen; unfolded, it opens beside the menu
+    val open: (String) -> Unit = { route -> if (expanded) vm.moreSection = route else go.to(route) }
+    val current = vm.moreSection
+    val menu: @Composable () -> Unit = {
         Column(
             Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             CardList {
-                MenuRow(Icons.Outlined.Inventory2, stringResource(R.string.products), stringResource(R.string.products_hint)) { go.to("products") }
+                MenuRow(Icons.Outlined.Inventory2, stringResource(R.string.products), stringResource(R.string.products_hint), expanded && current == "products") { open("products") }
                 RowDivider()
-                MenuRow(Icons.Outlined.Groups, stringResource(R.string.shareholders), stringResource(R.string.shareholders_hint)) { go.to("shareholders") }
+                MenuRow(Icons.Outlined.Groups, stringResource(R.string.shareholders), stringResource(R.string.shareholders_hint), expanded && current == "shareholders") { open("shareholders") }
                 RowDivider()
-                MenuRow(Icons.Outlined.AccountBalance, stringResource(R.string.loans), stringResource(R.string.loans_hint)) { go.to("loans") }
+                MenuRow(Icons.Outlined.AccountBalance, stringResource(R.string.loans), stringResource(R.string.loans_hint), expanded && current == "loans") { open("loans") }
                 RowDivider()
-                MenuRow(Icons.Outlined.Percent, stringResource(R.string.tax_and_vat), stringResource(R.string.tax_hint)) { go.to("tax") }
+                MenuRow(Icons.Outlined.Percent, stringResource(R.string.tax_and_vat), stringResource(R.string.tax_hint), expanded && current == "tax") { open("tax") }
             }
             CardList {
-                MenuRow(Icons.Outlined.Storefront, stringResource(R.string.business_details), b.name) { go.to("business/${b.id}") }
+                MenuRow(Icons.Outlined.Storefront, stringResource(R.string.business_details), b.name, expanded && current?.startsWith("business/") == true) { open("business/${b.id}") }
                 RowDivider()
-                MenuRow(Icons.Outlined.Settings, stringResource(R.string.settings), stringResource(R.string.settings_hint)) { go.to("settings") }
+                MenuRow(Icons.Outlined.Settings, stringResource(R.string.settings), stringResource(R.string.settings_hint), expanded && current == "settings") { open("settings") }
+            }
+        }
+    }
+
+    AppScreen(title = stringResource(R.string.tab_more), tab = "more", go = go) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            if (!expanded) {
+                menu()
+            } else {
+                TwoPane(
+                    first = menu,
+                    second = {
+                        val paneGo = remember(go) { EmbeddedGo(go) { vm.moreSection = null } }
+                        CompositionLocalProvider(LocalEmbedded provides true) {
+                            key(current) {
+                                when {
+                                    current == null -> EmptyState(
+                                        icon = Icons.Outlined.Storefront,
+                                        title = stringResource(R.string.pane_pick_section),
+                                        body = stringResource(R.string.pane_pick_section_body),
+                                    )
+                                    current == "products" -> ProductsScreen(vm, paneGo)
+                                    current == "shareholders" -> ShareholdersScreen(vm, paneGo)
+                                    current == "loans" -> LoansScreen(vm, paneGo)
+                                    current == "tax" -> TaxScreen(vm, paneGo)
+                                    current == "settings" -> SettingsScreen(vm, paneGo)
+                                    current.startsWith("business/") -> BusinessEditorScreen(
+                                        vm,
+                                        id = current.removePrefix("business/").toLongOrNull() ?: b.id,
+                                        onDone = { vm.moreSection = null },
+                                        onBack = { vm.moreSection = null },
+                                    )
+                                }
+                            }
+                        }
+                    },
+                )
             }
         }
     }

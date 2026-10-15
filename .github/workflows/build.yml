@@ -70,3 +70,45 @@ jobs:
           git config user.email "actions@users.noreply.github.com"
           git add . && git commit -q -m "Screenshots for ${GITHUB_SHA}"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" screenshots
+
+  adaptive:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { tag: pixel-fold, profile: pixel_fold, foldable: 1 }
+          - { tag: pixel-9-pro-fold, profile: pixel_9_pro_fold, foldable: 1 }
+          - { tag: tablet-7, profile: "7in WSVGA (Tablet)", foldable: 0 }
+          - { tag: tablet-10, profile: "10.1in WXGA (Tablet)", foldable: 0 }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: Daftar-debug-apk
+          path: app/build/outputs/apk/debug
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Photograph the cover and inner experiences (${{ matrix.tag }})
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          profile: ${{ matrix.profile }}
+          disable-animations: false
+          script: bash ci/screens_adaptive.sh ${{ matrix.tag }} ${{ matrix.foldable }}
+      - name: Publish to the "screenshots-${{ matrix.tag }}" branch
+        if: always()
+        run: |
+          mkdir /tmp/pub && cp shots-${{ matrix.tag }}/* /tmp/pub/ || true
+          cd /tmp/pub
+          git init -q -b screenshots-${{ matrix.tag }}
+          git config user.name "github-actions"
+          git config user.email "actions@users.noreply.github.com"
+          git add . && git commit -q -m "Screenshots (${{ matrix.tag }}) for ${GITHUB_SHA}" || exit 0
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" screenshots-${{ matrix.tag }}

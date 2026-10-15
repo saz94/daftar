@@ -32,6 +32,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import android.app.Activity
 import android.view.WindowManager
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.LaunchedEffect
@@ -60,26 +61,26 @@ import com.daftar.app.data.DocKind
 import com.daftar.app.data.TxnType
 
 /** The few navigation moves the screens need. */
-class Go(private val nav: NavHostController, private val onCreate: () -> Unit) {
+open class Go(internal val nav: NavHostController, private val onCreate: () -> Unit) {
     /** False while a screen is still fading in or out, so a second quick tap is ignored. */
     private fun settled(): Boolean =
         nav.currentBackStackEntry?.lifecycle?.currentState == Lifecycle.State.RESUMED
 
-    fun to(route: String) {
+    open fun to(route: String) {
         if (settled()) nav.navigate(route) { launchSingleTop = true }
     }
 
     /** Opens a screen from a background result (a finished scan), where no tap is involved. */
-    fun toNow(route: String) {
+    open fun toNow(route: String) {
         nav.navigate(route) { launchSingleTop = true }
     }
 
-    fun back() {
+    open fun back() {
         if (settled()) backNow()
     }
 
     /** Leaves the screen even if it has not finished appearing. Never empties the stack. */
-    fun backNow() {
+    open fun backNow() {
         if (nav.previousBackStackEntry != null) nav.popBackStack()
     }
 
@@ -93,13 +94,24 @@ class Go(private val nav: NavHostController, private val onCreate: () -> Unit) {
     }
 
     /** Replace the current screen (after saving a new invoice, show its preview instead). */
-    fun replace(route: String) {
+    open fun replace(route: String) {
         backNow()
         nav.navigate(route)
     }
 
     /** Opens the "create something" sheet behind the centre + button. */
     fun create() = onCreate()
+}
+
+/**
+ * The [Go] handed to a screen living inside a pane of a two-pane layout. Going "back" closes the
+ * pane's content instead of popping the real stack, and "replace" (after saving a new invoice)
+ * tells the pane what to show next. Anything else still opens full screen.
+ */
+class EmbeddedGo(private val parent: Go, private val onClose: (nextRoute: String?) -> Unit) : Go(parent.nav, parent::create) {
+    override fun back() = onClose(null)
+    override fun backNow() = onClose(null)
+    override fun replace(route: String) = onClose(route)
 }
 
 @Composable
@@ -109,16 +121,20 @@ fun AppRoot(vm: AppViewModel = viewModel(), demo: Boolean = false, startRoute: S
     LaunchedEffect(demo, list == null) {
         if (demo && list != null && list.isEmpty()) vm.seedDemo()
     }
-    GlowBackground {
-        when {
-            list == null -> Unit
-            list.isEmpty() -> if (!demo) BusinessEditorScreen(vm, id = 0L, onDone = {}, onboarding = true)
-            else -> AppNav(vm, startRoute)
+    // One decision for the whole app, taken from the live window: cover or inner experience.
+    val windowLayout = rememberWindowLayout()
+    CompositionLocalProvider(LocalWindowLayout provides windowLayout) {
+        GlowBackground {
+            when {
+                list == null -> Unit
+                list.isEmpty() -> if (!demo) BusinessEditorScreen(vm, id = 0L, onDone = {}, onboarding = true)
+                else -> AppNav(vm, startRoute)
+            }
         }
+        // The lock sits above everything. The app underneath stays alive, so a photo being taken or a
+        // half-written invoice is still there after unlocking.
+        if (vm.locked || vm.lockPreview) LockScreen(vm)
     }
-    // The lock sits above everything. The app underneath stays alive, so a photo being taken or a
-    // half-written invoice is still there after unlocking.
-    if (vm.locked || vm.lockPreview) LockScreen(vm)
 
     // While a PIN is set, keep the app's contents out of screenshots and the recent-apps strip.
     val window = (LocalContext.current as? Activity)?.window

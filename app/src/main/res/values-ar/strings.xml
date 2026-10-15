@@ -309,6 +309,12 @@
     <string name="widget_show_figures_hint">حتى عندما يكون التطبيق مقفلًا. يمكن لأي شخص يرى شاشتك الرئيسية قراءتها.</string>
     <string name="profit_margin">هامش الربح</string>
     <string name="by_month">الإيرادات والمصروفات شهريًا</string>
+    <string name="pane_pick_document">اختر مستندًا</string>
+    <string name="pane_pick_document_body">اختر فاتورة أو عرض سعر أو مشتريات من القائمة لعرضها هنا.</string>
+    <string name="pane_pick_entry">اختر قيدًا</string>
+    <string name="pane_pick_entry_body">اختر قيدًا من القائمة لتعديله هنا، أو أضف قيدًا جديدًا.</string>
+    <string name="pane_pick_section">اختر قسمًا</string>
+    <string name="pane_pick_section_body">تُفتح هنا المنتجات والمساهمون والقروض والضرائب والإعدادات.</string>
     <string-array name="expense_categories">
         <item>الإيجار</item>
         <item>الرواتب</item>

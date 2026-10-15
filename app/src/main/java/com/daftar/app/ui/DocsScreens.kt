@@ -47,6 +47,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -179,11 +181,18 @@ fun DocsScreen(vm: AppViewModel, go: Go) {
         listOf(stringResource(R.string.all), stringResource(R.string.status_unpaid), stringResource(R.string.status_paid), stringResource(R.string.status_overdue))
     }
 
-    AppScreen(
-        title = stringResource(R.string.tab_documents),
-        bottomBar = { BottomTabs("docs", go) },
-    ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+    val expanded = isExpanded()
+    val selected = vm.selectedDocId
+    // a tap opens the document full screen on the cover, or in the pane beside the list when unfolded
+    val open: (Doc) -> Unit = { doc ->
+        if (expanded) {
+            vm.selectedDocId = doc.id
+        } else {
+            go.to(if (doc.kind == DocKind.PURCHASE) "doc/${doc.kind}/${doc.id}" else "preview/${doc.id}")
+        }
+    }
+    val listPane: @Composable () -> Unit = {
+        Column(Modifier.fillMaxSize()) {
             Segmented(
                 options = listOf(
                     stringResource(R.string.invoices),
@@ -294,21 +303,62 @@ fun DocsScreen(vm: AppViewModel, go: Go) {
                             }
                         }
                         items(monthDocs, key = { it.id }) { doc ->
-                            DocRow(doc, today) {
-                                go.to(if (doc.kind == DocKind.PURCHASE) "doc/${doc.kind}/${doc.id}" else "preview/${doc.id}")
-                            }
+                            DocRow(doc, today, selected = expanded && doc.id == selected) { open(doc) }
                         }
                     }
                 }
             }
         }
     }
+
+    AppScreen(title = stringResource(R.string.tab_documents), tab = "docs", go = go) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            if (!expanded) {
+                listPane()
+            } else {
+                TwoPane(
+                    first = listPane,
+                    second = {
+                        val current = selected?.let { id -> docs.firstOrNull { it.id == id } }
+                        if (current == null) {
+                            EmptyState(
+                                icon = Icons.Outlined.Description,
+                                title = stringResource(R.string.pane_pick_document),
+                                body = stringResource(R.string.pane_pick_document_body),
+                                actionLabel = addLabel,
+                                onAction = onAdd,
+                            )
+                        } else {
+                            val paneGo = remember(go) {
+                                EmbeddedGo(go) { next ->
+                                    vm.selectedDocId = next?.removePrefix("preview/")?.toLongOrNull()
+                                }
+                            }
+                            CompositionLocalProvider(LocalEmbedded provides true) {
+                                key(current.id) {
+                                    if (current.kind == DocKind.PURCHASE) {
+                                        DocEditorScreen(vm, paneGo, current.kind, current.id)
+                                    } else {
+                                        DocPreviewScreen(vm, paneGo, current.id)
+                                    }
+                                }
+                            }
+                        }
+                    },
+                )
+            }
+        }
+    }
 }
 
 @Composable
-private fun DocRow(doc: Doc, today: Long, onClick: () -> Unit) {
+private fun DocRow(doc: Doc, today: Long, selected: Boolean = false, onClick: () -> Unit) {
     val overdue = doc.status == DocStatus.UNPAID && doc.dueDay != null && doc.dueDay < today
-    Surface(onClick = onClick, shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.surface) {
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.medium,
+        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+    ) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             InitialsAvatar(doc.partyName, 42)
             Spacer(Modifier.width(12.dp))

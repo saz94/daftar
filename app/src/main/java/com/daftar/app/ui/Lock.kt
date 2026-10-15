@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -194,12 +195,9 @@ fun LockScreen(vm: AppViewModel) {
     BackHandler { context.findActivity()?.moveTaskToBack(true) }
 
     val waitSeconds = ((vm.lockedOutUntil - now + 999) / 1000).coerceAtLeast(0)
-    GlowBackground {
-        Column(
-            Modifier.fillMaxSize().systemBarsPadding().padding(horizontal = 24.dp, vertical = 32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Spacer(Modifier.weight(1f))
+    // The prompt and the keypad are two pieces, so a half-open device can keep the keypad on the
+    // half that lies flat and the prompt on the half that stands up. Side by side when wide.
+    val prompt: @Composable ColumnScope.() -> Unit = {
             GlowOrb(size = 72.dp) {
                 Icon(Icons.Outlined.Lock, contentDescription = null, tint = OnGradient, modifier = Modifier.size(30.dp))
             }
@@ -218,7 +216,8 @@ fun LockScreen(vm: AppViewModel) {
             )
             Spacer(Modifier.height(28.dp))
             PinDots(entered.length, length, wrong)
-            Spacer(Modifier.weight(1f))
+    }
+    val pad: @Composable () -> Unit = {
             PinPad(
                 onDigit = { digit ->
                     if (waitSeconds == 0L && entered.length < length) {
@@ -240,7 +239,34 @@ fun LockScreen(vm: AppViewModel) {
                 onDelete = { entered = entered.dropLast(1) },
                 onBiometric = if (biometric) showBiometric else null,
             )
-            Spacer(Modifier.height(12.dp))
+    }
+    val wide = isExpanded() && !LocalWindowLayout.current.tabletop
+    GlowBackground {
+        Box(Modifier.fillMaxSize().systemBarsPadding().padding(horizontal = 24.dp, vertical = 24.dp)) {
+            TabletopSplit(
+                top = {
+                    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) { prompt() }
+                },
+                bottom = {
+                    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) { pad() }
+                },
+                whole = {
+                    if (wide) {
+                        Row(Modifier.fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) { prompt() }
+                            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) { pad() }
+                        }
+                    } else {
+                        Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Spacer(Modifier.weight(1f))
+                            prompt()
+                            Spacer(Modifier.weight(1f))
+                            pad()
+                            Spacer(Modifier.height(12.dp))
+                        }
+                    }
+                },
+            )
         }
     }
 }

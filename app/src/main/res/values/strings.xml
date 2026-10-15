@@ -309,6 +309,12 @@
     <string name="widget_show_figures_hint">Even while the app is locked. Anyone who sees your home screen can read them.</string>
     <string name="profit_margin">Profit margin</string>
     <string name="by_month">Income and expenses by month</string>
+    <string name="pane_pick_document">Pick a document</string>
+    <string name="pane_pick_document_body">Choose an invoice, quotation or purchase from the list to see it here.</string>
+    <string name="pane_pick_entry">Pick an entry</string>
+    <string name="pane_pick_entry_body">Choose an entry from the list to edit it here, or add a new one.</string>
+    <string name="pane_pick_section">Pick a section</string>
+    <string name="pane_pick_section_body">Products, shareholders, loans, tax and settings open here.</string>
     <string-array name="expense_categories">
         <item>Rent</item>
         <item>Salaries</item>

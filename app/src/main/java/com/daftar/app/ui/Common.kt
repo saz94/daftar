@@ -1,6 +1,13 @@
 package com.daftar.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.material3.NavigationRail
+import androidx.compose.material3.NavigationRailItem
+import androidx.compose.material3.NavigationRailItemDefaults
+import androidx.compose.material3.ScaffoldDefaults
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Brush
@@ -22,6 +29,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
@@ -94,7 +102,13 @@ const val LTR_MARK = "\u200E"
 fun formatDay(day: Long): String =
     LocalDate.ofEpochDay(day).format(DateTimeFormatter.ofPattern("d MMM yyyy", Locale.getDefault()))
 
-/** Standard page: title bar, optional back arrow, optional bottom tabs. */
+/**
+ * True inside a pane of a two-pane layout. The page then drops its back arrow and its own window
+ * insets, because the pane is already inside a page that handles both.
+ */
+val LocalEmbedded = staticCompositionLocalOf { false }
+
+/** Standard page: title bar, optional back arrow, and the app's tabs when [tab] is given. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScreen(
@@ -102,60 +116,136 @@ fun AppScreen(
     onBack: (() -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
     fab: @Composable () -> Unit = {},
-    bottomBar: @Composable () -> Unit = {},
+    tab: String? = null,
+    go: Go? = null,
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                navigationIcon = {
-                    if (onBack != null) {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+    val embedded = LocalEmbedded.current
+    val page: @Composable (bottomBar: @Composable () -> Unit) -> Unit = { bottomBar ->
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                    navigationIcon = {
+                        if (onBack != null && !embedded) {
+                            IconButton(onClick = onBack) {
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
+                            }
+                        }
+                    },
+                    actions = actions,
+                    windowInsets = if (embedded) WindowInsets(0) else TopAppBarDefaults.windowInsets,
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent,
+                    ),
+                )
+            },
+            floatingActionButton = fab,
+            bottomBar = bottomBar,
+            containerColor = Color.Transparent,
+            contentColor = MaterialTheme.colorScheme.onBackground,
+            contentWindowInsets = if (embedded) WindowInsets(0) else ScaffoldDefaults.contentWindowInsets,
+            content = content,
+        )
+    }
+    if (tab != null && go != null) TabFrame(tab, go, page) else page {}
+}
+
+/**
+ * Puts the app's four destinations around a tab screen: a floating bar underneath on the cover
+ * experience, a rail along the start edge on the inner experience.
+ */
+@Composable
+fun TabFrame(tab: String, go: Go, page: @Composable (bottomBar: @Composable () -> Unit) -> Unit) {
+    if (isExpanded()) {
+        Row(Modifier.fillMaxSize()) {
+            NavRail(tab, go)
+            Box(Modifier.weight(1f).fillMaxHeight()) { page {} }
+        }
+    } else {
+        page { BottomTabs(tab, go) }
+    }
+}
+
+private val TabItems = listOf(
+    Triple("home", Icons.Outlined.Dashboard, R.string.tab_home),
+    Triple("docs", Icons.Outlined.Description, R.string.tab_documents),
+    Triple("money", Icons.Outlined.Payments, R.string.tab_money),
+    Triple("more", Icons.Outlined.MoreHoriz, R.string.tab_more),
+)
+
+/** The inner experience's navigation: a rail with the gradient + at its head. */
+@Composable
+private fun NavRail(current: String, go: Go) {
+    Box(Modifier.fillMaxHeight().padding(start = 12.dp, top = 8.dp, bottom = 12.dp).statusBarsPadding()) {
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shadowElevation = 10.dp,
+            modifier = Modifier.fillMaxHeight(),
+        ) {
+            NavigationRail(
+                containerColor = Color.Transparent,
+                windowInsets = WindowInsets(0),
+                header = {
+                    Surface(
+                        onClick = { go.create() },
+                        shape = CircleShape,
+                        color = Color.Transparent,
+                        shadowElevation = 6.dp,
+                        modifier = Modifier.padding(top = 12.dp, bottom = 8.dp).size(56.dp),
+                    ) {
+                        Box(Modifier.fillMaxSize().background(BrandGradient), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.create_new), tint = OnGradient, modifier = Modifier.size(26.dp))
                         }
                     }
                 },
-                actions = actions,
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = Color.Transparent,
-                ),
-            )
-        },
-        floatingActionButton = fab,
-        bottomBar = bottomBar,
-        containerColor = Color.Transparent,
-        contentColor = MaterialTheme.colorScheme.onBackground,
-        content = content,
-    )
+            ) {
+                for ((route, icon, label) in TabItems) {
+                    val on = current == route
+                    NavigationRailItem(
+                        selected = on,
+                        onClick = { if (!on) go.tab(route) },
+                        icon = { Icon(icon, contentDescription = null) },
+                        label = { Text(stringResource(label), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                        colors = NavigationRailItemDefaults.colors(
+                            selectedIconColor = OnGradient,
+                            selectedTextColor = MaterialTheme.colorScheme.onSurface,
+                            indicatorColor = Teal,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
+                        modifier = Modifier.padding(vertical = 6.dp),
+                    )
+                }
+            }
+        }
+    }
 }
 
 /** Scrolling column for forms; keeps the focused field above the keyboard. */
 @Composable
 fun FormColumn(padding: PaddingValues, content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)
-            .consumeWindowInsets(padding)
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        content = content,
-    )
+    // on a wide screen a form stays a readable width in the middle instead of stretching edge to edge
+    Box(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding), contentAlignment = Alignment.TopCenter) {
+        Column(
+            modifier = Modifier
+                .widthIn(max = contentMaxWidth())
+                .fillMaxSize()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            content = content,
+        )
+    }
 }
 
 /** Floating rounded bar with icons, and the gradient + in the middle, as in the reference. */
 @Composable
 fun BottomTabs(current: String, go: Go) {
-    val items = listOf(
-        Triple("home", Icons.Outlined.Dashboard, R.string.tab_home),
-        Triple("docs", Icons.Outlined.Description, R.string.tab_documents),
-        Triple("money", Icons.Outlined.Payments, R.string.tab_money),
-        Triple("more", Icons.Outlined.MoreHoriz, R.string.tab_more),
-    )
+    val items = TabItems
     Box(
         Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 20.dp, end = 20.dp, bottom = 12.dp, top = 4.dp),
         contentAlignment = Alignment.Center,
@@ -271,10 +361,11 @@ fun ListRow(
     title: String,
     subtitle: String? = null,
     onClick: (() -> Unit)? = null,
+    selected: Boolean = false,
     leading: @Composable (() -> Unit)? = null,
     trailing: @Composable (() -> Unit)? = null,
 ) {
-    val base = Modifier.fillMaxWidth()
+    val base = Modifier.fillMaxWidth().background(if (selected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
     Row(
         modifier = (if (onClick != null) base.clickable(onClick = onClick) else base)
             .padding(horizontal = 16.dp, vertical = 14.dp),

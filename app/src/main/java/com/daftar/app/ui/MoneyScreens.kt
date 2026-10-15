@@ -27,7 +27,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.key
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -66,12 +69,15 @@ fun MoneyScreen(vm: AppViewModel, go: Go) {
     }
     val newType = if (tab == 1) TxnType.INCOME else TxnType.EXPENSE
     val addLabel = stringResource(if (tab == 1) R.string.add_income else R.string.add_expense)
+    val expanded = isExpanded()
+    val selected = vm.selectedTxn
+    // on the cover an entry opens full screen; unfolded, it opens in the pane beside the list
+    val open: (String, Long) -> Unit = { type, id ->
+        if (expanded) vm.selectedTxn = type to id else go.to("txn/$type/$id")
+    }
 
-    AppScreen(
-        title = stringResource(R.string.income_and_expenses),
-        bottomBar = { BottomTabs("money", go) },
-    ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
+    val listPane: @Composable () -> Unit = {
+        Column(Modifier.fillMaxSize()) {
             Segmented(
                 options = listOf(stringResource(R.string.all), stringResource(R.string.income), stringResource(R.string.expenses)),
                 selected = tab,
@@ -84,7 +90,7 @@ fun MoneyScreen(vm: AppViewModel, go: Go) {
                     title = stringResource(R.string.empty_money_title),
                     body = stringResource(R.string.empty_money_body),
                     actionLabel = addLabel,
-                    onAction = { go.to("txn/$newType/0") },
+                    onAction = { open(newType, 0L) },
                 )
             } else {
                 LazyColumn(
@@ -93,10 +99,11 @@ fun MoneyScreen(vm: AppViewModel, go: Go) {
                 ) {
                     items(list, key = { it.id }) { txn ->
                         val income = txn.type == TxnType.INCOME
+                        val on = expanded && selected?.second == txn.id
                         Surface(
-                            onClick = { go.to("txn/${txn.type}/${txn.id}") },
+                            onClick = { open(txn.type, txn.id) },
                             shape = MaterialTheme.shapes.medium,
-                            color = MaterialTheme.colorScheme.surface,
+                            color = if (on) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
                         ) {
                             ListRow(
                                 title = txn.description.ifBlank { txn.category.ifBlank { stringResource(if (income) R.string.income else R.string.expense) } },
@@ -118,6 +125,40 @@ fun MoneyScreen(vm: AppViewModel, go: Go) {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    AppScreen(
+        title = stringResource(R.string.income_and_expenses),
+        tab = "money",
+        go = go,
+    ) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            if (!expanded) {
+                listPane()
+            } else {
+                TwoPane(
+                    first = listPane,
+                    second = {
+                        if (selected == null) {
+                            EmptyState(
+                                icon = Icons.Outlined.Payments,
+                                title = stringResource(R.string.pane_pick_entry),
+                                body = stringResource(R.string.pane_pick_entry_body),
+                                actionLabel = addLabel,
+                                onAction = { open(newType, 0L) },
+                            )
+                        } else {
+                            val paneGo = remember(go) { EmbeddedGo(go) { vm.selectedTxn = null } }
+                            CompositionLocalProvider(LocalEmbedded provides true) {
+                                key(selected) {
+                                    TxnEditorScreen(vm, paneGo, selected.first, selected.second)
+                                }
+                            }
+                        }
+                    },
+                )
             }
         }
     }

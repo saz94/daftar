@@ -8,15 +8,15 @@ plugins {
 
 android {
     namespace = "com.daftar.app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.daftar.app"
         minSdk = 26
-        targetSdk = 35
+        targetSdk = 36
         // Raise versionCode with every release; Android refuses to install a lower one over a higher one.
-        versionCode = 5
-        versionName = "1.4"
+        versionCode = 6
+        versionName = "1.5"
     }
 
     // One fixed signing key kept in the project, so every build can be installed over the
@@ -81,6 +81,10 @@ dependencies {
     // On-device text recognition (Latin script) for reading invoice photos.
     implementation("com.google.mlkit:text-recognition:16.0.1")
     implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // Window size classes and the fold hinge, and the navigation rail for wide screens.
+    implementation("androidx.compose.material3.adaptive:adaptive:1.0.0")
+    implementation("androidx.window:window:1.3.0")
 
     // Fingerprint / face unlock, and home-screen widgets.
     implementation("androidx.biometric:biometric:1.1.0")

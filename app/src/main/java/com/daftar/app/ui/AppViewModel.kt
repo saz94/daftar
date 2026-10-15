@@ -222,6 +222,13 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ---- what the detail pane shows on the inner (unfolded, tablet) experience
+    var selectedDocId by mutableStateOf<Long?>(null)
+    /** Type and id of the entry open in the Money pane; id 0 means a new one of that type. */
+    var selectedTxn by mutableStateOf<Pair<String, Long>?>(null)
+    /** Route of the section open in the More pane, e.g. "products" or "business/3". */
+    var moreSection by mutableStateOf<String?>(null)
+
     /** The "create something" sheet behind the centre + button, and the scan-a-bill sheet. */
     var createOpen by mutableStateOf(false)
     var scanOpen by mutableStateOf(false)
