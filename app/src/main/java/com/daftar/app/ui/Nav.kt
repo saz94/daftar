@@ -109,7 +109,7 @@ fun AppRoot(vm: AppViewModel = viewModel(), demo: Boolean = false, startRoute: S
     LaunchedEffect(demo, list == null) {
         if (demo && list != null && list.isEmpty()) vm.seedDemo()
     }
-    Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    GlowBackground {
         when {
             list == null -> Unit
             list.isEmpty() -> if (!demo) BusinessEditorScreen(vm, id = 0L, onDone = {}, onboarding = true)

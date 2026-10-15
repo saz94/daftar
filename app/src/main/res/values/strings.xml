@@ -307,6 +307,8 @@
     <string name="widget_income">Income</string>
     <string name="widget_show_figures">Show figures on the widget</string>
     <string name="widget_show_figures_hint">Even while the app is locked. Anyone who sees your home screen can read them.</string>
+    <string name="profit_margin">Profit margin</string>
+    <string name="by_month">Income and expenses by month</string>
     <string-array name="expense_categories">
         <item>Rent</item>
         <item>Salaries</item>

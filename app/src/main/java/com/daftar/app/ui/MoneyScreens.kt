@@ -208,11 +208,7 @@ fun TxnEditorScreen(vm: AppViewModel, go: Go, type: String, id: Long) {
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 for (preset in presets) {
-                    FilterChip(
-                        selected = category == preset,
-                        onClick = { category = if (category == preset) "" else preset },
-                        label = { Text(preset) },
-                    )
+                    GradientChip(preset, selected = category == preset, onClick = { category = if (category == preset) "" else preset }, warm = !income)
                 }
             }
             Field(stringResource(R.string.category_custom), category, { category = it })

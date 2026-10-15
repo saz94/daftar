@@ -266,8 +266,8 @@ fun ShareholderEditorScreen(vm: AppViewModel, go: Go, id: Long) {
 
 @Composable
 private fun ProgressTrack(fraction: Float, color: Color, modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)).background(MaterialTheme.colorScheme.surfaceVariant)) {
-        Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).fillMaxHeight().background(color))
+    Box(modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f))) {
+        Box(Modifier.fillMaxWidth(fraction.coerceIn(0f, 1f)).fillMaxHeight().clip(RoundedCornerShape(4.dp)).background(BrandGradient))
     }
 }
 

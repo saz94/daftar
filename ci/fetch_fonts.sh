@@ -5,7 +5,7 @@ set -euo pipefail
 dir="$(cd "$(dirname "$0")/.." && pwd)/app/src/main/res/font"
 mkdir -p "$dir"
 base="https://raw.githubusercontent.com/google/fonts/main/ofl/ibmplexsansarabic"
-for pair in Regular:plex_regular Medium:plex_medium SemiBold:plex_semibold Bold:plex_bold; do
+for pair in Light:plex_light Regular:plex_regular Medium:plex_medium SemiBold:plex_semibold Bold:plex_bold; do
   src="${pair%%:*}"; dst="${pair##*:}"
   if [ ! -s "$dir/$dst.ttf" ]; then
     curl -fsSL --retry 3 "$base/IBMPlexSansArabic-$src.ttf" -o "$dir/$dst.ttf"

@@ -48,7 +48,8 @@ import kotlinx.coroutines.withContext
 
 private val White = ColorProvider(Color.White)
 private val Soft = ColorProvider(Color(0xBFFFFFFF))
-private val Yellow = ColorProvider(Color(0xFFF6DC7A))
+private val Yellow = ColorProvider(Color(0xFFFFA65B))
+private val Mint = ColorProvider(Color(0xFF3EDBC4))
 
 /** Opens the app, optionally straight on a screen (see the "route" handling in ui/Nav.kt). */
 private fun openApp(context: Context, route: String? = null): Intent =
@@ -168,7 +169,7 @@ private fun SnapshotContent(context: Context, data: Snapshot?) {
         }
         Spacer(GlanceModifier.defaultWeight())
         Row(GlanceModifier.fillMaxWidth()) {
-            Figure(context.getString(R.string.income), data.income, White, GlanceModifier.defaultWeight())
+            Figure(context.getString(R.string.income), data.income, Mint, GlanceModifier.defaultWeight())
             Figure(context.getString(R.string.expenses), data.expenses, Yellow, GlanceModifier.defaultWeight())
             Figure(context.getString(R.string.status_unpaid), data.unpaid, White, GlanceModifier.defaultWeight())
         }

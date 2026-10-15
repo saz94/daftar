@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -130,7 +132,8 @@ fun BusinessAvatar(business: Business, size: Int = 36) {
     }
 }
 
-private class Attention(val icon: ImageVector, val tint: Color, val title: String, val detail: String, val amount: Long, val onClick: () -> Unit)
+/** [warm] = money going out or late (pink-orange card); otherwise the lime-teal card. */
+private class Attention(val icon: ImageVector, val tint: Color, val title: String, val detail: String, val amount: Long, val warm: Boolean = true, val onClick: () -> Unit)
 
 private class Activity(val day: Long, val id: Long, val title: String, val detail: String, val amount: Long, val moneyIn: Boolean?, val route: String)
 
@@ -193,7 +196,7 @@ fun HomeScreen(vm: AppViewModel, go: Go) {
     }
     if (quarterVat > 0L) {
         attention.add(
-            Attention(Icons.Outlined.Percent, money.due, stringResource(R.string.attention_vat, quarter.label()), stringResource(R.string.attention_vat_hint), quarterVat) {
+            Attention(Icons.Outlined.Percent, money.due, stringResource(R.string.attention_vat, quarter.label()), stringResource(R.string.attention_vat_hint), quarterVat, warm = false) {
                 go.to("tax")
             },
         )
@@ -289,13 +292,13 @@ fun HomeScreen(vm: AppViewModel, go: Go) {
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    scrolledContainerColor = MaterialTheme.colorScheme.background,
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent,
                 ),
             )
         },
         bottomBar = { BottomTabs("home", go) },
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,
     ) { padding ->
         Column(
             modifier = Modifier
@@ -314,22 +317,25 @@ fun HomeScreen(vm: AppViewModel, go: Go) {
                 summary = summary,
                 previous = previous,
                 previousLabel = if (period.type == PeriodType.ALL) "" else period.copy(offset = period.offset - 1).label(),
-                months = months,
             )
+
+            SectionLabel(stringResource(R.string.by_month))
+            Panel(Modifier.fillMaxWidth()) {
+                MonthBars(months)
+            }
 
             if (attention.isNotEmpty()) {
                 SectionLabel(stringResource(R.string.needs_attention))
-                CardList {
-                    attention.forEachIndexed { index, item ->
-                        if (index > 0) RowDivider()
-                        ListRow(
-                            title = item.title,
-                            subtitle = item.detail,
-                            onClick = item.onClick,
-                            leading = { IconBadge(item.icon, item.tint) },
-                            trailing = { Amount(item.amount) },
-                        )
-                    }
+                attention.forEach { item ->
+                    GradientCard(
+                        title = item.title,
+                        detail = item.detail,
+                        amount = Money.format(item.amount),
+                        icon = item.icon,
+                        warm = item.warm,
+                        onClick = item.onClick,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
 
@@ -473,13 +479,11 @@ private fun AmountWithChevron(minor: Long) {
     }
 }
 
-// ------------------------------------------------------------------ headline card
-
-private val DuplicateYellow = Color(0xFFF6DC7A)
+// ------------------------------------------------------------------ headline
 
 /**
- * The one loud element on the screen: profit on carbon blue, over a fine wave pattern like the
- * security printing on a receipt book, with six months of income and expenses drawn beneath.
+ * The reference's "82%" moment: a glowing gradient circle holding the profit margin (how much of
+ * every dirham earned was kept), with the period to step through above it and the figures below.
  */
 @Composable
 private fun HeroCard(
@@ -489,225 +493,152 @@ private fun HeroCard(
     summary: Summary,
     previous: Summary?,
     previousLabel: String,
-    months: List<Pair<LocalDate, Summary>>,
 ) {
     val money = LocalMoneyColors.current
-    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(money.heroStart, money.heroEnd),
-                    start = if (rtl) Offset(Float.POSITIVE_INFINITY, 0f) else Offset.Zero,
-                    end = if (rtl) Offset(0f, Float.POSITIVE_INFINITY) else Offset.Infinite,
-                ),
+    val margin = if (summary.income > 0L) (summary.profit * 100.0 / summary.income) else null
+    val loss = summary.profit < 0L
+    Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+        // calendar-style header: < October 2026 >
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            if (period.type != PeriodType.ALL) {
+                IconButton(onClick = { onPeriod(period.copy(offset = period.offset - 1)) }) {
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = stringResource(R.string.previous))
+                }
+            }
+            Text(
+                if (period.type == PeriodType.ALL) stringResource(R.string.period_all) else period.label(),
+                style = MaterialTheme.typography.titleSmall,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.weight(1f).padding(vertical = 12.dp),
             )
-            .drawBehind {
-                val w = size.width
-                val h = size.height
-                val stroke = Stroke(width = 1.dp.toPx())
-                for (k in 0 until 16) {
-                    val path = Path()
-                    val phase = k * 0.42f
-                    val amp = h * (0.06f + 0.011f * k)
-                    var x = 0f
-                    while (x <= w + 6f) {
-                        val t = x / w
-                        val y = h * 0.36f + amp * sin(t * 2f * PI.toFloat() * 1.4f + phase) * cos(t * PI.toFloat() * 0.9f + k * 0.21f)
-                        if (x == 0f) path.moveTo(x, y) else path.lineTo(x, y)
-                        x += 6f
-                    }
-                    drawPath(path, Color.White.copy(alpha = 0.055f), style = stroke)
+            if (period.type != PeriodType.ALL) {
+                IconButton(onClick = { onPeriod(period.copy(offset = period.offset + 1)) }, enabled = period.offset < 0) {
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = stringResource(R.string.next))
                 }
-            },
-    ) {
-        Column(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 16.dp)) {
-            // which period this is, with arrows to step back and forward
-            Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            }
+        }
+
+        GlowOrb(size = 184.dp, warm = loss) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(horizontal = 18.dp)) {
                 Text(
-                    if (period.type == PeriodType.ALL) stringResource(R.string.period_all) else period.label(),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = Color.White,
+                    if (margin == null) "–" else LTR_MARK + margin.roundToInt().coerceIn(-999, 999).toString() + "%",
+                    style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = OnGradient,
                     maxLines = 1,
-                    modifier = Modifier.weight(1f),
                 )
-                if (period.type != PeriodType.ALL) {
-                    IconButton(onClick = { onPeriod(period.copy(offset = period.offset - 1)) }) {
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = stringResource(R.string.previous), tint = Color.White)
-                    }
-                    IconButton(onClick = { onPeriod(period.copy(offset = period.offset + 1)) }, enabled = period.offset < 0) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = stringResource(R.string.next),
-                            tint = Color.White.copy(alpha = if (period.offset < 0) 1f else 0.35f),
-                        )
-                    }
-                } else {
-                    Spacer(Modifier.height(48.dp))
-                }
-            }
-            Column(Modifier.padding(horizontal = 20.dp)) {
                 Text(
-                    stringResource(R.string.net_profit),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = Color.White.copy(alpha = 0.72f),
-                )
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(
-                        LTR_MARK + Money.format(summary.profit),
-                        style = MaterialTheme.typography.displaySmall.tabular(),
-                        color = Color.White,
-                        maxLines = 1,
-                    )
-                    Spacer(Modifier.width(8.dp))
-                    Text(
-                        currency,
-                        style = MaterialTheme.typography.titleSmall,
-                        color = Color.White.copy(alpha = 0.72f),
-                        modifier = Modifier.padding(bottom = 9.dp),
-                    )
-                }
-                // a percentage only means something when both periods made a profit
-                if (previous != null && previous.profit > 0L && summary.profit > 0L) {
-                    val change = (summary.profit - previous.profit) * 100.0 / abs(previous.profit)
-                    val up = change >= 0
-                    Spacer(Modifier.height(6.dp))
-                    Row(
-                        Modifier
-                            .clip(RoundedCornerShape(50))
-                            .background(Color.White.copy(alpha = 0.14f))
-                            .padding(horizontal = 10.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Icon(
-                            if (up) Icons.AutoMirrored.Outlined.TrendingUp else Icons.AutoMirrored.Outlined.TrendingDown,
-                            contentDescription = null,
-                            tint = if (up) Color(0xFF8FF0C4) else Color(0xFFFFB3AA),
-                            modifier = Modifier.size(16.dp),
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            stringResource(
-                                if (up) R.string.more_than_previous else R.string.less_than_previous,
-                                abs(change).roundToInt().coerceAtMost(999).toString() + "%",
-                                previousLabel,
-                            ),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = Color.White,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-            }
-
-            Spacer(Modifier.height(14.dp))
-            TrendChart(months, Color.White, DuplicateYellow, Modifier.fillMaxWidth().height(96.dp))
-            val formatter = remember { DateTimeFormatter.ofPattern("MMM", Locale.getDefault()) }
-            Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp)) {
-                for ((start, _) in months) {
-                    Text(
-                        start.format(formatter),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.White.copy(alpha = 0.6f),
-                        textAlign = TextAlign.Center,
-                        maxLines = 1,
-                        modifier = Modifier.weight(1f),
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(10.dp))
-            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
-                HeroFigure(stringResource(R.string.income), summary.income, Color.White, solid = true, modifier = Modifier.weight(1f))
-                HeroFigure(stringResource(R.string.expenses), summary.expenses, DuplicateYellow, solid = false, modifier = Modifier.weight(1f))
-            }
-        }
-    }
-}
-
-@Composable
-private fun HeroFigure(label: String, minor: Long, lineColor: Color, solid: Boolean, modifier: Modifier = Modifier) {
-    Column(modifier) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            // a tiny sample of the chart line, so the two series are told apart without relying on colour
-            Canvas(Modifier.width(16.dp).height(8.dp)) {
-                drawLine(
-                    lineColor,
-                    Offset(0f, size.height / 2),
-                    Offset(size.width, size.height / 2),
-                    strokeWidth = 2.dp.toPx(),
-                    cap = StrokeCap.Round,
-                    pathEffect = if (solid) null else PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx())),
+                    stringResource(R.string.profit_margin),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = OnGradient.copy(alpha = 0.75f),
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
                 )
             }
-            Spacer(Modifier.width(6.dp))
-            Text(label, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.72f))
         }
+
         Text(
-            Money.format(minor),
-            style = MaterialTheme.typography.titleMedium.tabular(),
-            color = Color.White,
-            maxLines = 1,
+            stringResource(R.string.net_profit),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(
+                LTR_MARK + Money.format(summary.profit),
+                style = MaterialTheme.typography.displayLarge.tabular(),
+                maxLines = 1,
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                currency,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = 12.dp),
+            )
+        }
+        if (previous != null && previous.profit > 0L && summary.profit > 0L) {
+            val change = (summary.profit - previous.profit) * 100.0 / abs(previous.profit)
+            val up = change >= 0
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    if (up) Icons.AutoMirrored.Outlined.TrendingUp else Icons.AutoMirrored.Outlined.TrendingDown,
+                    contentDescription = null,
+                    tint = if (up) money.positive else money.negative,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    stringResource(
+                        if (up) R.string.more_than_previous else R.string.less_than_previous,
+                        abs(change).roundToInt().coerceAtMost(999).toString() + "%",
+                        previousLabel,
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            HeroFigure(stringResource(R.string.income), summary.income, warm = false, modifier = Modifier.weight(1f))
+            HeroFigure(stringResource(R.string.expenses), summary.expenses, warm = true, modifier = Modifier.weight(1f))
+        }
     }
 }
 
-/** Income (solid, filled) and expenses (dashed) over six months. Draws itself in once, on arrival. */
 @Composable
-private fun TrendChart(months: List<Pair<LocalDate, Summary>>, incomeColor: Color, expenseColor: Color, modifier: Modifier = Modifier) {
-    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+private fun HeroFigure(label: String, minor: Long, warm: Boolean, modifier: Modifier = Modifier) {
+    Panel(modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(10.dp).clip(CircleShape).background(if (warm) WarmGradient else BrandGradient))
+            Spacer(Modifier.width(8.dp))
+            Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(Money.format(minor), style = MaterialTheme.typography.titleMedium.tabular(), maxLines = 1)
+    }
+}
+
+/**
+ * Six months as pairs of rounded gradient bars, like the reference's "Repeating habits by day":
+ * lime-teal for income, pink-orange for expenses. Bars grow in once, on arrival.
+ */
+@Composable
+private fun MonthBars(months: List<Pair<LocalDate, Summary>>) {
     var started by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { started = true }
-    val progress by animateFloatAsState(if (started) 1f else 0f, tween(durationMillis = 900), label = "chart")
+    val progress by animateFloatAsState(if (started) 1f else 0f, tween(durationMillis = 800), label = "bars")
     val peak = months.maxOf { maxOf(it.second.income, it.second.expenses) }.coerceAtLeast(1L).toFloat()
-
-    Canvas(modifier) {
-        val n = months.size
-        if (n < 2) return@Canvas
-        val slot = size.width / n
-        val top = 8.dp.toPx()
-        val usable = size.height - top - 2.dp.toPx()
-
-        fun points(select: (Summary) -> Long): List<Offset> = months.mapIndexed { index, month ->
-            val x = slot * index + slot / 2
-            val y = top + usable * (1f - select(month.second).coerceAtLeast(0L) / peak)
-            Offset(if (rtl) size.width - x else x, y)
-        }
-
-        fun curve(points: List<Offset>): Path {
-            val path = Path()
-            path.moveTo(points[0].x, points[0].y)
-            for (i in 1 until points.size) {
-                val a = points[i - 1]
-                val b = points[i]
-                val mid = (a.x + b.x) / 2
-                path.cubicTo(mid, a.y, mid, b.y, b.x, b.y)
+    val track = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+    val formatter = remember { DateTimeFormatter.ofPattern("MMM", Locale.getDefault()) }
+    Row(Modifier.fillMaxWidth().height(150.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        for ((start, s) in months) {
+            Column(Modifier.weight(1f).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(
+                    Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                    verticalAlignment = Alignment.Bottom,
+                ) {
+                    for ((value, brush) in listOf(s.income to BrandGradient, s.expenses to WarmGradient)) {
+                        Box(Modifier.width(12.dp).fillMaxHeight().clip(RoundedCornerShape(6.dp)).background(track), contentAlignment = Alignment.BottomCenter) {
+                            val f = (value.coerceAtLeast(0L) / peak) * progress
+                            if (f > 0f) {
+                                Box(
+                                    Modifier.fillMaxWidth().fillMaxHeight(maxOf(f, 0.04f)).clip(RoundedCornerShape(6.dp))
+                                        .background(
+                                            Brush.verticalGradient(
+                                                if (brush == BrandGradient) listOf(Teal, Lime) else listOf(Pink, Orange),
+                                            ),
+                                        ),
+                                )
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Text(start.format(formatter), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
-            return path
-        }
-
-        val income = points { it.income }
-        val expenses = points { it.expenses }
-        val reveal = size.width * progress
-        clipRect(
-            left = if (rtl) size.width - reveal else 0f,
-            right = if (rtl) size.width else reveal,
-        ) {
-            val area = curve(income)
-            area.lineTo(income.last().x, size.height)
-            area.lineTo(income.first().x, size.height)
-            area.close()
-            drawPath(area, Brush.verticalGradient(listOf(incomeColor.copy(alpha = 0.28f), incomeColor.copy(alpha = 0f))))
-            drawPath(
-                curve(expenses),
-                expenseColor,
-                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, pathEffect = PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 5.dp.toPx()))),
-            )
-            drawPath(curve(income), incomeColor, style = Stroke(width = 2.5.dp.toPx(), cap = StrokeCap.Round))
-            drawCircle(incomeColor, radius = 4.dp.toPx(), center = income.last())
         }
     }
 }

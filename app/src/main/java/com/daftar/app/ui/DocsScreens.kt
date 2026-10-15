@@ -244,16 +244,8 @@ fun DocsScreen(vm: AppViewModel, go: Go) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     filterLabels.forEachIndexed { index, label ->
-                        FilterChip(
-                            selected = filter == index,
-                            onClick = { vm.docsFilter = index },
-                            label = { Text(label) },
-                            shape = RoundedCornerShape(50),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                            ),
-                        )
+                        // "Overdue" lights up in the warm gradient, the rest in lime-teal
+                        GradientChip(label, selected = filter == index, onClick = { vm.docsFilter = index }, warm = index == 3 && kind != DocKind.QUOTATION)
                     }
                 }
                 LazyColumn(
@@ -262,18 +254,18 @@ fun DocsScreen(vm: AppViewModel, go: Go) {
                 ) {
                     if (waiting > 0 && filter == 0 && query.isBlank()) {
                         item(key = "waiting") {
-                            Surface(shape = MaterialTheme.shapes.medium, color = MaterialTheme.colorScheme.secondaryContainer) {
-                                Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Surface(shape = MaterialTheme.shapes.medium, color = Color.Transparent) {
+                                Row(Modifier.fillMaxWidth().background(BrandGradient).padding(horizontal = 18.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Text(
                                         stringResource(if (kind == DocKind.QUOTATION) R.string.open_label else R.string.unpaid_label),
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        color = OnGradient,
                                         modifier = Modifier.weight(1f),
                                     )
                                     Text(
                                         Money.format(waiting) + " " + b.currency,
                                         style = MaterialTheme.typography.titleMedium.tabular(),
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        color = OnGradient,
                                     )
                                 }
                             }

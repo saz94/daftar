@@ -307,6 +307,8 @@
     <string name="widget_income">إيراد</string>
     <string name="widget_show_figures">إظهار الأرقام في الأداة</string>
     <string name="widget_show_figures_hint">حتى عندما يكون التطبيق مقفلًا. يمكن لأي شخص يرى شاشتك الرئيسية قراءتها.</string>
+    <string name="profit_margin">هامش الربح</string>
+    <string name="by_month">الإيرادات والمصروفات شهريًا</string>
     <string-array name="expense_categories">
         <item>الإيجار</item>
         <item>الرواتب</item>

@@ -1,6 +1,10 @@
 package com.daftar.app.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -114,14 +118,14 @@ fun AppScreen(
                 },
                 actions = actions,
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background,
-                    scrolledContainerColor = MaterialTheme.colorScheme.background,
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent,
                 ),
             )
         },
         floatingActionButton = fab,
         bottomBar = bottomBar,
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,
         content = content,
     )
 }
@@ -142,44 +146,65 @@ fun FormColumn(padding: PaddingValues, content: @Composable ColumnScope.() -> Un
     )
 }
 
+/** Floating rounded bar with icons, and the gradient + in the middle, as in the reference. */
 @Composable
 fun BottomTabs(current: String, go: Go) {
-    NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
-        val items = listOf(
-            Triple("home", Icons.Outlined.Dashboard, R.string.tab_home),
-            Triple("docs", Icons.Outlined.Description, R.string.tab_documents),
-            Triple("money", Icons.Outlined.Payments, R.string.tab_money),
-            Triple("more", Icons.Outlined.MoreHoriz, R.string.tab_more),
-        )
-        items.forEachIndexed { index, (route, icon, label) ->
-            if (index == 2) {
-                // the one thing you do most, creating something, sits in the middle of the bar
-                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                    Surface(
-                        onClick = { go.create() },
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary,
-                        shadowElevation = 6.dp,
-                        modifier = Modifier.size(54.dp),
+    val items = listOf(
+        Triple("home", Icons.Outlined.Dashboard, R.string.tab_home),
+        Triple("docs", Icons.Outlined.Description, R.string.tab_documents),
+        Triple("money", Icons.Outlined.Payments, R.string.tab_money),
+        Triple("more", Icons.Outlined.MoreHoriz, R.string.tab_more),
+    )
+    Box(
+        Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 20.dp, end = 20.dp, bottom = 12.dp, top = 4.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            shadowElevation = 10.dp,
+            modifier = Modifier.fillMaxWidth().height(64.dp),
+        ) {
+            Row(Modifier.fillMaxSize().padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                items.forEachIndexed { index, (route, icon, label) ->
+                    if (index == 2) Spacer(Modifier.weight(1f))
+                    val on = current == route
+                    val name = stringResource(label)
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(20.dp))
+                            .selectable(selected = on, role = Role.Tab, onClick = { if (!on) go.tab(route) })
+                            .padding(vertical = 8.dp)
+                            .semantics { contentDescription = name },
+                        horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.create_new), modifier = Modifier.size(26.dp))
-                        }
+                        Icon(
+                            icon,
+                            contentDescription = null,
+                            tint = if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp),
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        // a short gradient bar marks the open tab
+                        Box(
+                            Modifier.width(16.dp).height(3.dp).clip(RoundedCornerShape(2.dp))
+                                .background(if (on) BrandGradient else Brush.linearGradient(listOf(Color.Transparent, Color.Transparent))),
+                        )
                     }
                 }
             }
-            NavigationBarItem(
-                selected = current == route,
-                onClick = { if (current != route) go.tab(route) },
-                icon = { Icon(icon, contentDescription = null) },
-                label = { Text(stringResource(label), maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                colors = NavigationBarItemDefaults.colors(
-                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
-                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    selectedTextColor = MaterialTheme.colorScheme.onSurface,
-                ),
-            )
+        }
+        Surface(
+            onClick = { go.create() },
+            shape = CircleShape,
+            color = Color.Transparent,
+            shadowElevation = 8.dp,
+            modifier = Modifier.size(58.dp),
+        ) {
+            Box(Modifier.fillMaxSize().background(BrandGradient), contentAlignment = Alignment.Center) {
+                Icon(Icons.Filled.Add, contentDescription = stringResource(R.string.create_new), tint = OnGradient, modifier = Modifier.size(28.dp))
+            }
         }
     }
 }
@@ -380,27 +405,19 @@ fun EmptyState(
     }
 }
 
-/** Pill-shaped switch between a few views. */
+/** Text tabs with a gradient underline under the chosen one, like "Daily  Weekly  Monthly". */
 @Composable
 fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
+    Row(modifier = modifier.fillMaxWidth()) {
         options.forEachIndexed { index, label ->
             val on = index == selected
-            Box(
+            Column(
                 modifier = Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(if (on) MaterialTheme.colorScheme.surface else Color.Transparent)
                     .selectable(selected = on, role = Role.Tab, onClick = { onSelect(index) })
-                    .padding(vertical = 10.dp, horizontal = 4.dp),
-                contentAlignment = Alignment.Center,
+                    .padding(top = 10.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
                     label,
@@ -408,6 +425,21 @@ fun Segmented(options: List<String>, selected: Int, onSelect: (Int) -> Unit, mod
                     color = if (on) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+                Spacer(Modifier.height(9.dp))
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(if (on) 3.dp else 1.dp)
+                        .clip(RoundedCornerShape(2.dp))
+                        .background(
+                            if (on) {
+                                BrandGradient
+                            } else {
+                                Brush.linearGradient(listOf(MaterialTheme.colorScheme.outlineVariant, MaterialTheme.colorScheme.outlineVariant))
+                            },
+                        ),
                 )
             }
         }
@@ -569,7 +601,7 @@ fun ConfirmDialog(title: String, body: String, confirmLabel: String, onConfirm: 
 fun SaveButton(onClick: () -> Unit, enabled: Boolean = true, label: String = stringResource(R.string.save)) {
     // a double tap must not save the same thing twice
     var lastTap by remember { mutableLongStateOf(0L) }
-    Button(
+    Surface(
         onClick = {
             val now = System.nanoTime() / 1_000_000L
             if (now - lastTap > 700L) {
@@ -578,10 +610,16 @@ fun SaveButton(onClick: () -> Unit, enabled: Boolean = true, label: String = str
             }
         },
         enabled = enabled,
-        modifier = Modifier.fillMaxWidth().height(52.dp),
-        shape = RoundedCornerShape(14.dp),
+        modifier = Modifier.fillMaxWidth().height(54.dp),
+        shape = RoundedCornerShape(18.dp),
+        color = Color.Transparent,
     ) {
-        Text(label, style = MaterialTheme.typography.titleSmall)
+        Box(
+            Modifier.fillMaxSize().background(BrandGradient, alpha = if (enabled) 1f else 0.4f),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(label, style = MaterialTheme.typography.titleSmall, color = OnGradient)
+        }
     }
 }
 

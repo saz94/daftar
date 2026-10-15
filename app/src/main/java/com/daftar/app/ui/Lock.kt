@@ -103,7 +103,7 @@ fun askBiometric(context: Context, title: String, usePinLabel: String, onSuccess
 
 @Composable
 private fun PinDots(entered: Int, total: Int, error: Boolean) {
-    val on = if (error) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+    val on = if (error) MaterialTheme.colorScheme.error else Teal
     Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
         for (i in 0 until total) {
             Box(
@@ -194,17 +194,14 @@ fun LockScreen(vm: AppViewModel) {
     BackHandler { context.findActivity()?.moveTaskToBack(true) }
 
     val waitSeconds = ((vm.lockedOutUntil - now + 999) / 1000).coerceAtLeast(0)
-    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+    GlowBackground {
         Column(
             Modifier.fillMaxSize().systemBarsPadding().padding(horizontal = 24.dp, vertical = 32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Spacer(Modifier.weight(1f))
-            Box(
-                Modifier.size(64.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.Outlined.Lock, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(28.dp))
+            GlowOrb(size = 72.dp) {
+                Icon(Icons.Outlined.Lock, contentDescription = null, tint = OnGradient, modifier = Modifier.size(30.dp))
             }
             Spacer(Modifier.height(20.dp))
             Text(stringResource(R.string.lock_enter_pin), style = MaterialTheme.typography.headlineSmall)
