@@ -9,6 +9,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -119,16 +121,16 @@ private fun PinDots(entered: Int, total: Int, error: Boolean) {
 }
 
 @Composable
-private fun Key(label: String? = null, icon: ImageVector? = null, description: String? = null, quiet: Boolean = false, onClick: () -> Unit) {
+private fun Key(label: String? = null, icon: ImageVector? = null, description: String? = null, quiet: Boolean = false, size: Dp = 76.dp, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
         shape = CircleShape,
         color = if (quiet) Color.Transparent else MaterialTheme.colorScheme.surface,
-        modifier = Modifier.size(76.dp),
+        modifier = Modifier.size(size),
     ) {
         Box(contentAlignment = Alignment.Center) {
             if (label != null) {
-                Text(label, style = MaterialTheme.typography.headlineMedium.tabular())
+                Text(label, style = (if (size < 70.dp) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium).tabular())
             } else if (icon != null) {
                 Icon(icon, contentDescription = description, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(28.dp))
             }
@@ -140,20 +142,25 @@ private fun Key(label: String? = null, icon: ImageVector? = null, description: S
 @Composable
 private fun PinPad(onDigit: (Char) -> Unit, onDelete: () -> Unit, onBiometric: (() -> Unit)?) {
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            for (row in listOf("123", "456", "789")) {
-                Row(horizontalArrangement = Arrangement.spacedBy(22.dp)) {
-                    for (digit in row) Key(label = digit.toString()) { onDigit(digit) }
+        // the pad shrinks to fit a short space, such as the half of a tabletop below the hinge
+        BoxWithConstraints {
+            val key = if (maxHeight < 420.dp) 58.dp else 76.dp
+            val gap = if (maxHeight < 420.dp) 8.dp else 14.dp
+            Column(verticalArrangement = Arrangement.spacedBy(gap), horizontalAlignment = Alignment.CenterHorizontally) {
+                for (row in listOf("123", "456", "789")) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(gap + 8.dp)) {
+                        for (digit in row) Key(label = digit.toString(), size = key) { onDigit(digit) }
+                    }
                 }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(22.dp)) {
-                if (onBiometric != null) {
-                    Key(icon = Icons.Outlined.Fingerprint, description = stringResource(R.string.lock_use_biometric), quiet = true, onClick = onBiometric)
-                } else {
-                    Spacer(Modifier.size(76.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(gap + 8.dp)) {
+                    if (onBiometric != null) {
+                        Key(icon = Icons.Outlined.Fingerprint, description = stringResource(R.string.lock_use_biometric), quiet = true, size = key, onClick = onBiometric)
+                    } else {
+                        Spacer(Modifier.size(key))
+                    }
+                    Key(label = "0", size = key) { onDigit('0') }
+                    Key(icon = Icons.AutoMirrored.Outlined.Backspace, description = stringResource(R.string.lock_delete_digit), quiet = true, size = key, onClick = onDelete)
                 }
-                Key(label = "0") { onDigit('0') }
-                Key(icon = Icons.AutoMirrored.Outlined.Backspace, description = stringResource(R.string.lock_delete_digit), quiet = true, onClick = onDelete)
             }
         }
     }
