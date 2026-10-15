@@ -230,7 +230,7 @@ fun DocsScreen(vm: AppViewModel, go: Go) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
-                    placeholder = { Text(stringResource(R.string.search_documents)) },
+                    placeholder = { Text(stringResource(R.string.search_documents), maxLines = 1, overflow = TextOverflow.Ellipsis) },
                     leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null) },
                     trailingIcon = {
                         if (query.isNotEmpty()) {

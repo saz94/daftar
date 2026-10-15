@@ -46,12 +46,13 @@ has() { screen_text; if grep -q "$1" /tmp/ui.xml; then echo "PASS: $2"; else ech
 # override, and finally resize the logical display to the cover's size (which exercises exactly
 # what the app sees: a window that changes size without the activity restarting).
 COVER_SIZE=${COVER_SIZE:-884x2208}
+state_id() { grep -o "identifier=[0-9]*, name='$1'" "$OUT/device_states.txt" | grep -o "[0-9]*" | head -1; }
 wm_w() { adb shell wm size | tail -1 | sed -E 's/.*: *([0-9]+)x.*/\1/'; }
 adb shell cmd device_state print-states > "$OUT/device_states.txt" 2>&1 || true
 NATIVE_W=$(wm_w)
 fold_device() {
   adb emu fold >/dev/null 2>&1; sleep 5
-  if [ "$(wm_w)" = "$NATIVE_W" ]; then adb shell cmd device_state state 0 >/dev/null 2>&1; sleep 5; fi
+  if [ "$(wm_w)" = "$NATIVE_W" ]; then C=$(state_id CLOSED); [ -n "$C" ] && adb shell cmd device_state state "$C" >/dev/null 2>&1; sleep 5; fi
   if [ "$(wm_w)" = "$NATIVE_W" ]; then echo "fold: falling back to wm size $COVER_SIZE"; adb shell wm size "$COVER_SIZE"; sleep 5; fi
   echo "folded width: $(wm_w)"
 }
@@ -61,7 +62,8 @@ unfold_device() {
   adb emu unfold >/dev/null 2>&1; sleep 5
   echo "unfolded width: $(wm_w)"
 }
-half_open() { adb emu posture 2 >/dev/null 2>&1; adb shell cmd device_state state 1 >/dev/null 2>&1; sleep 5; }
+state_id() { grep -o "identifier=[0-9]*, name='$1'" "$OUT/device_states.txt" | grep -o "[0-9]*" | head -1; }
+half_open() { adb emu posture 2 >/dev/null 2>&1; H=$(state_id HALF_OPENED); [ -n "$H" ] && adb shell cmd device_state state "$H" >/dev/null 2>&1; sleep 5; }
 flat_open() { adb emu posture 3 >/dev/null 2>&1; adb shell cmd device_state state reset >/dev/null 2>&1; sleep 4; }
 
 shot home warmup 25

@@ -74,6 +74,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -573,21 +574,36 @@ private fun HeroCard(
         }
     }
     if (horizontal) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            orb(140.dp)
-            Spacer(Modifier.width(12.dp))
-            Column(Modifier.weight(1f)) {
-                Text(
-                    if (period.type == PeriodType.ALL) stringResource(R.string.period_all) else period.label(),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(stringResource(R.string.net_profit), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(LTR_MARK + Money.format(summary.profit) + " " + currency, style = MaterialTheme.typography.headlineMedium.tabular(), maxLines = 1)
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    HeroFigure(stringResource(R.string.income), summary.income, warm = false, modifier = Modifier.weight(1f))
-                    HeroFigure(stringResource(R.string.expenses), summary.expenses, warm = true, modifier = Modifier.weight(1f))
+        // above a tabletop hinge the pane is short; on a flip phone it is narrow as well
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val narrow = maxWidth < 560.dp
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                orb(if (narrow) 116.dp else 140.dp)
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        if (period.type == PeriodType.ALL) stringResource(R.string.period_all) else period.label(),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                    Text(stringResource(R.string.net_profit) + "  " + currency, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        LTR_MARK + Money.format(summary.profit),
+                        style = (if (narrow) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium).tabular(),
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    if (narrow) {
+                        FigureLine(stringResource(R.string.income), summary.income, warm = false)
+                        FigureLine(stringResource(R.string.expenses), summary.expenses, warm = true)
+                    } else {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            HeroFigure(stringResource(R.string.income), summary.income, warm = false, modifier = Modifier.weight(1f))
+                            HeroFigure(stringResource(R.string.expenses), summary.expenses, warm = true, modifier = Modifier.weight(1f))
+                        }
+                    }
                 }
             }
         }
@@ -614,7 +630,8 @@ private fun HeroCard(
             }
         }
 
-        orb(184.dp)
+        // a smaller orb on short screens such as a flip phone's cover
+        orb(if (LocalConfiguration.current.screenHeightDp < 600) 132.dp else 184.dp)
 
         Text(
             stringResource(R.string.net_profit) + "  " + currency,
@@ -670,6 +687,17 @@ private fun HeroCard(
                 }
             }
         }
+    }
+}
+
+/** One line: coloured dot, label, figure. For places too tight for a card. */
+@Composable
+private fun FigureLine(label: String, minor: Long, warm: Boolean) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(8.dp).clip(CircleShape).background(if (warm) WarmGradient else BrandGradient))
+        Spacer(Modifier.width(6.dp))
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, modifier = Modifier.weight(1f))
+        Text(Money.format(minor), style = MaterialTheme.typography.titleSmall.tabular(), maxLines = 1)
     }
 }
 
