@@ -4,8 +4,11 @@
 # the hinge the same way Android Studio's device manager does, before the emulator starts.
 set -u
 PROFILE=$1
-CFG=$(ls -d "$HOME"/.android/avd/*.avd 2>/dev/null | head -1)/config.ini
-[ -f "$CFG" ] || { echo "no AVD config found"; exit 0; }
+LOG=$(ls -d shots-* 2>/dev/null | head -1)/avd.txt
+AVD_DIR=$(ls -d "${ANDROID_AVD_HOME:-$HOME/.android/avd}"/*.avd "$HOME"/.android/avd/*.avd 2>/dev/null | head -1)
+CFG="$AVD_DIR/config.ini"
+{ echo "ANDROID_AVD_HOME=${ANDROID_AVD_HOME:-}"; echo "avd dir: $AVD_DIR"; ls "$HOME/.android/avd" 2>/dev/null; } > "$LOG" 2>&1
+[ -f "$CFG" ] || { echo "no AVD config found" | tee -a "$LOG"; exit 0; }
 case "$PROFILE" in
   "7.6in Foldable")
     # 1768 x 2208 inner panel, hinge top to bottom; folded, the left half (884 wide) is the cover
@@ -46,4 +49,4 @@ hw.displayRegion.0.1.height = 1318
 INI
     ;;
 esac
-echo "--- $CFG"; grep -E "hinge|displayRegion|hw.lcd" "$CFG"
+{ echo "--- $CFG"; cat "$CFG"; } >> "$LOG"; grep -E "hinge|displayRegion|hw.lcd" "$CFG"

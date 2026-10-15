@@ -47,6 +47,8 @@ shot home warmup 25
 if [ "$FOLDABLE" = 1 ]; then
   # ---- cover experience (folded)
   adb emu fold; sleep 6
+  adb shell wm size > "$OUT/wm_size_folded.txt"; cat "$OUT/wm_size_folded.txt"
+  adb shell dumpsys window | grep -i -E "folding|hinge|posture" | head -5 >> "$OUT/wm_size_folded.txt" || true
   shot home cover_home
   shot docs cover_docs
   shot money cover_money
