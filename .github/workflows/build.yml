@@ -80,8 +80,8 @@ jobs:
         include:
           # the runner's SDK has no Pixel Fold profile; the 7.6" Foldable is the same book-style
           # device (2208 x 1840 inner panel, cover screen), the 6.7" Foldable is a flip
-          - { tag: fold-7-6, profile: "7.6in Foldable", foldable: 1, tabletop_rot: 1 }
-          - { tag: flip-6-7, profile: "6.7in Foldable", foldable: 1, tabletop_rot: 0 }
+          - { tag: fold-7-6, profile: "7.6in Foldable", foldable: 1, tabletop_rot: 1, cover: 884x2208 }
+          - { tag: flip-6-7, profile: "6.7in Foldable", foldable: 1, tabletop_rot: 0, cover: 1080x1318 }
           - { tag: tablet-7, profile: "7in WSVGA (Tablet)", foldable: 0, tabletop_rot: 1 }
           - { tag: tablet-10, profile: "10.1in WXGA (Tablet)", foldable: 0, tabletop_rot: 1 }
     steps:
@@ -110,7 +110,7 @@ jobs:
           emulator-boot-timeout: 900
           pre-emulator-launch-script: bash ci/avd_hinge.sh "${{ matrix.profile }}"
           disable-animations: false
-          script: bash ci/screens_adaptive.sh ${{ matrix.tag }} ${{ matrix.foldable }} ${{ matrix.tabletop_rot }} 2>&1 | tee shots-${{ matrix.tag }}/run.txt
+          script: COVER_SIZE=${{ matrix.cover }} bash ci/screens_adaptive.sh ${{ matrix.tag }} ${{ matrix.foldable }} ${{ matrix.tabletop_rot }} 2>&1 | tee shots-${{ matrix.tag }}/run.txt
       - name: Publish to the "screenshots-${{ matrix.tag }}" branch
         if: always()
         run: |

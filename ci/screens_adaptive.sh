@@ -42,20 +42,40 @@ PY
 }
 has() { screen_text; if grep -q "$1" /tmp/ui.xml; then echo "PASS: $2"; else echo "FAIL: $2"; fi; }
 
+# Folding on the emulator: try the emulator's own hinge first, then Android's device-state
+# override, and finally resize the logical display to the cover's size (which exercises exactly
+# what the app sees: a window that changes size without the activity restarting).
+COVER_SIZE=${COVER_SIZE:-884x2208}
+wm_w() { adb shell wm size | tail -1 | sed -E 's/.*: *([0-9]+)x.*/\1/'; }
+adb shell cmd device_state print-states > "$OUT/device_states.txt" 2>&1 || true
+NATIVE_W=$(wm_w)
+fold_device() {
+  adb emu fold >/dev/null 2>&1; sleep 5
+  if [ "$(wm_w)" = "$NATIVE_W" ]; then adb shell cmd device_state state 0 >/dev/null 2>&1; sleep 5; fi
+  if [ "$(wm_w)" = "$NATIVE_W" ]; then echo "fold: falling back to wm size $COVER_SIZE"; adb shell wm size "$COVER_SIZE"; sleep 5; fi
+  echo "folded width: $(wm_w)"
+}
+unfold_device() {
+  adb shell wm size reset >/dev/null 2>&1
+  adb shell cmd device_state state reset >/dev/null 2>&1
+  adb emu unfold >/dev/null 2>&1; sleep 5
+  echo "unfolded width: $(wm_w)"
+}
+half_open() { adb emu posture 2 >/dev/null 2>&1; adb shell cmd device_state state 1 >/dev/null 2>&1; sleep 5; }
+flat_open() { adb emu posture 3 >/dev/null 2>&1; adb shell cmd device_state state reset >/dev/null 2>&1; sleep 4; }
+
 shot home warmup 25
 
 if [ "$FOLDABLE" = 1 ]; then
   # ---- cover experience (folded)
-  adb emu fold; sleep 6
-  adb shell wm size > "$OUT/wm_size_folded.txt"; cat "$OUT/wm_size_folded.txt"
-  adb shell dumpsys window | grep -i -E "folding|hinge|posture" | head -5 >> "$OUT/wm_size_folded.txt" || true
+  fold_device
   shot home cover_home
   shot docs cover_docs
   shot money cover_money
   shot create cover_create
 
   # ---- inner experience (unfolded, flat)
-  adb emu unfold; sleep 6
+  unfold_device
   shot home inner_home
   shot docs inner_docs_empty
   tap_text "Desert Rose"; snap inner_docs 8
@@ -72,7 +92,7 @@ if [ "$FOLDABLE" = 1 ]; then
   adb shell cmd locale set-app-locales com.daftar.app --locales en || true; sleep 2
 
   # ---- half open like a book (hinge top to bottom): panes split on the hinge
-  adb emu posture 2; sleep 6
+  half_open
   rotate $BOOK_ROT
   shot docs book_docs_empty; tap_text "Desert Rose"; snap book_docs 8
   shot home book_home
@@ -83,16 +103,16 @@ if [ "$FOLDABLE" = 1 ]; then
   shot lock tabletop_lock
   shot docs tabletop_docs
   rotate 0
-  adb emu posture 3; sleep 4
+  flat_open
 
   # ---- fold and unfold with the app open: same process, typed text still there
   {
     shot docs state_before
     tap_text "Search by name"; adb shell input text "Gulf"; sleep 2
     PID1=$(adb shell pidof com.daftar.app | tr -d '\r')
-    adb emu fold; sleep 6; snap state_folded 2
+    fold_device; snap state_folded 2
     has "Gulf" "search text survives folding"
-    adb emu unfold; sleep 6; snap state_unfolded 2
+    unfold_device; snap state_unfolded 2
     PID2=$(adb shell pidof com.daftar.app | tr -d '\r')
     has "Gulf" "search text survives unfolding"
     if [ -n "$PID1" ] && [ "$PID1" = "$PID2" ]; then echo "PASS: same process before and after folding ($PID1)"; else echo "FAIL: process changed ($PID1 -> $PID2)"; fi
