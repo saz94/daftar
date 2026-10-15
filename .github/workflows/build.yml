@@ -93,6 +93,11 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
+      - name: Record which device profiles this runner has
+        run: |
+          mkdir -p shots-${{ matrix.tag }}
+          { echo "emulator:"; $ANDROID_HOME/emulator/emulator -version 2>/dev/null | head -2; echo; echo "devices:"; $ANDROID_HOME/cmdline-tools/latest/bin/avdmanager list device -c 2>/dev/null; } > shots-${{ matrix.tag }}/runner.txt || true
+          cat shots-${{ matrix.tag }}/runner.txt
       - name: Photograph the cover and inner experiences (${{ matrix.tag }})
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -100,8 +105,9 @@ jobs:
           arch: x86_64
           target: google_apis
           profile: ${{ matrix.profile }}
+          emulator-boot-timeout: 900
           disable-animations: false
-          script: bash ci/screens_adaptive.sh ${{ matrix.tag }} ${{ matrix.foldable }}
+          script: bash ci/screens_adaptive.sh ${{ matrix.tag }} ${{ matrix.foldable }} 2>&1 | tee shots-${{ matrix.tag }}/run.txt
       - name: Publish to the "screenshots-${{ matrix.tag }}" branch
         if: always()
         run: |
