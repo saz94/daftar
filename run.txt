@@ -1,0 +1,73 @@
+Performing Streamed Install
+Success
+Night mode: no
+captured warmup
+captured en_home
+captured en_create
+captured en_invoices
+captured en_preview
+captured en_editor
+captured en_money
+captured en_more
+captured en_business
+captured en_loans
+captured en_shareholders
+captured en_tax
+captured en_settings
+captured en_lock
+captured en_setpin
+pin button at: 831 2253
+pin button at: 831 2253
+captured en_products
+captured en_new_quote
+Night mode: yes
+captured dark_home
+captured dark_invoices
+captured dark_preview
+Night mode: no
+captured ar_home
+captured ar_invoices
+captured ar_preview
+captured ar_create
+Night mode: yes
+captured ar_dark_home
+total 13512
+drwxr-xr-x 2 runner runner    4096 Oct 16 00:20 .
+drwxr-xr-x 8 runner runner    4096 Oct 16 00:12 ..
+-rw-r--r-- 1 runner runner  402803 Oct 16 00:20 ar_create.png
+-rw-r--r-- 1 runner runner  615891 Oct 16 00:20 ar_dark_home.png
+-rw-r--r-- 1 runner runner  489214 Oct 16 00:19 ar_home.png
+-rw-r--r-- 1 runner runner  472969 Oct 16 00:19 ar_invoices.png
+-rw-r--r-- 1 runner runner  314274 Oct 16 00:20 ar_preview.png
+-rw-r--r-- 1 runner runner  615728 Oct 16 00:18 dark_home.png
+-rw-r--r-- 1 runner runner  563334 Oct 16 00:19 dark_invoices.png
+-rw-r--r-- 1 runner runner  362511 Oct 16 00:19 dark_preview.png
+-rw-r--r-- 1 runner runner  474537 Oct 16 00:15 en_business.png
+-rw-r--r-- 1 runner runner  400071 Oct 16 00:14 en_create.png
+-rw-r--r-- 1 runner runner  397745 Oct 16 00:15 en_editor.png
+-rw-r--r-- 1 runner runner  490586 Oct 16 00:14 en_home.png
+-rw-r--r-- 1 runner runner  646651 Oct 16 00:14 en_home_2.png
+-rw-r--r-- 1 runner runner  472894 Oct 16 00:14 en_invoices.png
+-rw-r--r-- 1 runner runner  205725 Oct 16 00:16 en_loans.png
+-rw-r--r-- 1 runner runner  310771 Oct 16 00:17 en_lock.png
+-rw-r--r-- 1 runner runner  429097 Oct 16 00:15 en_money.png
+-rw-r--r-- 1 runner runner  284190 Oct 16 00:15 en_more.png
+-rw-r--r-- 1 runner runner  373621 Oct 16 00:18 en_new_quote.png
+-rw-r--r-- 1 runner runner  299628 Oct 16 00:15 en_preview.png
+-rw-r--r-- 1 runner runner  298298 Oct 16 00:18 en_products.png
+-rw-r--r-- 1 runner runner  293625 Oct 16 00:17 en_setpin.png
+-rw-r--r-- 1 runner runner  432764 Oct 16 00:16 en_settings.png
+-rw-r--r-- 1 runner runner  231176 Oct 16 00:16 en_shareholders.png
+-rw-r--r-- 1 runner runner  382237 Oct 16 00:16 en_tax.png
+-rw-r--r-- 1 runner runner     636 Oct 16 00:20 run.txt
+-rw-r--r-- 1 runner runner  491026 Oct 16 00:13 warmup.png
+-rw-r--r-- 1 runner runner  453754 Oct 16 00:17 widget_actions_dialog.png
+-rw-r--r-- 1 runner runner  462840 Oct 16 00:17 widget_snapshot_dialog.png
+-rw-r--r-- 1 runner runner 1052200 Oct 16 00:18 widgets_home.png
+-rw-r--r-- 1 runner runner 1052200 Oct 16 00:18 widgets_home_2.png
+Night mode: no
+PASS: after setting a PIN, the app opens locked
+PASS: a wrong PIN is refused
+PASS: still locked after a wrong PIN
+PASS: the right PIN opens the app
+PASS: coming back within a minute does not ask again
