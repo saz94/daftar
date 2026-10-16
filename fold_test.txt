@@ -1,0 +1,11 @@
+captured state_before
+fold: falling back to wm size 884x2208
+folded width: 884
+captured state_folded
+PASS: search text survives folding
+unfolded width: 1768
+captured state_unfolded
+PASS: search text survives unfolding
+PASS: same process before and after folding (7655)
+PASS: search text survives rotation
+PASS: same process after rotation
