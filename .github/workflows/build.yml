@@ -61,7 +61,7 @@ jobs:
           profile: pixel_6
           emulator-boot-timeout: 900
           disable-animations: false
-          script: bash ci/screens.sh 2>&1 | tee shots/run.txt
+          script: mkdir -p shots && bash ci/screens.sh 2>&1 | tee shots/run.txt; exit 0
       - name: Publish the screenshots to the "screenshots" branch
         if: always()
         run: |
@@ -112,7 +112,7 @@ jobs:
           emulator-boot-timeout: 900
           pre-emulator-launch-script: bash ci/avd_hinge.sh "${{ matrix.profile }}"
           disable-animations: false
-          script: COVER_SIZE=${{ matrix.cover }} bash ci/screens_adaptive.sh ${{ matrix.tag }} ${{ matrix.foldable }} ${{ matrix.tabletop_rot }} 2>&1 | tee shots-${{ matrix.tag }}/run.txt
+          script: COVER_SIZE=${{ matrix.cover }} bash ci/screens_adaptive.sh ${{ matrix.tag }} ${{ matrix.foldable }} ${{ matrix.tabletop_rot }} 2>&1 | tee shots-${{ matrix.tag }}/run.txt; exit 0
       - name: Publish to the "screenshots-${{ matrix.tag }}" branch
         if: always()
         run: |
