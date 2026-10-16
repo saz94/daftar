@@ -45,6 +45,26 @@ If the run turns red, open it, copy the red error lines, and send them back.
 3. **File > Open** and choose this folder. Wait for the first sync to finish.
 4. Plug in your phone with USB debugging on (or start an emulator) and press **Run**.
 
+## Foldables and tablets
+
+The app has two deliberate experiences, decided from the live window size (never the device model):
+
+- **Cover (width under 600 dp):** one column, the headline figure first, large tap targets, a
+  floating bottom bar. Phones, the cover screen of a foldable, and split-screen windows.
+- **Inner (600 dp and wider):** a navigation rail on the start edge and two panes side by side:
+  Home = glance + details, Invoices = list + document preview, Money = list + editor,
+  More = menu + section. Tablets and unfolded foldables.
+
+The fold hinge is read from `androidx.window`'s `FoldingFeature`. Half-open with the hinge across
+the middle (tabletop), the Home and lock screens put content above and below the hinge; half-open
+like a book, the two-pane divider sits on the hinge. Folding, unfolding and rotating recompose in
+place (`configChanges` on the activity); nothing restarts and typed text survives.
+
+Code: `ui/Adaptive.kt` (window layout, `TwoPane`, `TabletopSplit`), `ui/Common.kt`
+(`TabFrame`, the rail, `LocalEmbedded`), `ui/Nav.kt` (`EmbeddedGo` for panes).
+CI photographs the 7.6" and 6.7" foldable profiles and 7" and 10" tablets on every push
+(`ci/screens_adaptive.sh`), and checks that folding keeps the same process and state.
+
 ## How reading an invoice photo works
 
 Text is recognised on the phone with Google ML Kit; the picture is never uploaded.
