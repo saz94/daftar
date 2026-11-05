@@ -1,0 +1,5 @@
+PASS: after setting a PIN, the app opens locked
+PASS: a wrong PIN is refused
+PASS: still locked after a wrong PIN
+PASS: the right PIN opens the app
+PASS: coming back within a minute does not ask again
