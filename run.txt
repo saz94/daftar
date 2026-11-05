@@ -1,0 +1,78 @@
+Performing Streamed Install
+Success
+captured warmup
+fold: falling back to wm size 1080x1318
+folded width: 1080
+captured cover_home
+captured cover_docs
+captured cover_money
+captured cover_create
+unfolded width: 1080
+captured inner_home
+captured inner_docs_empty
+captured inner_docs
+captured inner_money_empty
+captured inner_money
+captured inner_more_empty
+captured inner_more
+captured inner_lock
+captured inner_editor
+Night mode: yes
+captured inner_home_dark
+Night mode: no
+captured inner_home_ar
+captured inner_docs_ar_empty
+captured inner_docs_ar
+captured book_docs_empty
+could not find 'Desert Rose'
+captured book_docs
+captured book_home
+captured tabletop_home
+captured tabletop_lock
+captured tabletop_docs
+captured state_before
+fold: falling back to wm size 1080x1318
+folded width: 1080
+captured state_folded
+PASS: search text survives folding
+unfolded width: 1080
+captured state_unfolded
+PASS: search text survives unfolding
+PASS: same process before and after folding (7631)
+PASS: search text survives rotation
+PASS: same process after rotation
+total 12440
+drwxr-xr-x 2 runner runner   4096 Nov  5 04:07 .
+drwxr-xr-x 8 runner runner   4096 Nov  5 03:58 ..
+-rw-r--r-- 1 runner runner   4429 Nov  5 03:59 avd.txt
+-rw-r--r-- 1 runner runner 962713 Nov  5 04:05 book_docs.png
+-rw-r--r-- 1 runner runner 962401 Nov  5 04:04 book_docs_empty.png
+-rw-r--r-- 1 runner runner 836724 Nov  5 04:05 book_home.png
+-rw-r--r-- 1 runner runner  68625 Nov  5 04:01 cover_create.png
+-rw-r--r-- 1 runner runner 351608 Nov  5 04:01 cover_docs.png
+-rw-r--r-- 1 runner runner 398037 Nov  5 04:00 cover_home.png
+-rw-r--r-- 1 runner runner 305040 Nov  5 04:01 cover_money.png
+-rw-r--r-- 1 runner runner    342 Nov  5 03:59 device_states.txt
+-rw-r--r-- 1 runner runner    341 Nov  5 04:07 fold_test.txt
+-rw-r--r-- 1 runner runner 313865 Nov  5 04:02 inner_docs.png
+-rw-r--r-- 1 runner runner 326079 Nov  5 04:04 inner_docs_ar.png
+-rw-r--r-- 1 runner runner 515549 Nov  5 04:04 inner_docs_ar_empty.png
+-rw-r--r-- 1 runner runner 506894 Nov  5 04:02 inner_docs_empty.png
+-rw-r--r-- 1 runner runner 421056 Nov  5 04:03 inner_editor.png
+-rw-r--r-- 1 runner runner 533133 Nov  5 04:01 inner_home.png
+-rw-r--r-- 1 runner runner 528761 Nov  5 04:04 inner_home_ar.png
+-rw-r--r-- 1 runner runner 661019 Nov  5 04:03 inner_home_dark.png
+-rw-r--r-- 1 runner runner 332301 Nov  5 04:03 inner_lock.png
+-rw-r--r-- 1 runner runner 400951 Nov  5 04:02 inner_money.png
+-rw-r--r-- 1 runner runner 472594 Nov  5 04:02 inner_money_empty.png
+-rw-r--r-- 1 runner runner 318873 Nov  5 04:03 inner_more.png
+-rw-r--r-- 1 runner runner 309125 Nov  5 04:02 inner_more_empty.png
+-rw-r--r-- 1 runner runner   1050 Nov  5 04:07 run.txt
+-rw-r--r-- 1 runner runner   1266 Nov  5 03:58 runner.txt
+-rw-r--r-- 1 runner runner 507041 Nov  5 04:06 state_before.png
+-rw-r--r-- 1 runner runner 247878 Nov  5 04:06 state_folded.png
+-rw-r--r-- 1 runner runner 422664 Nov  5 04:07 state_unfolded.png
+-rw-r--r-- 1 runner runner 507041 Nov  5 04:06 tabletop_docs.png
+-rw-r--r-- 1 runner runner 580392 Nov  5 04:05 tabletop_home.png
+-rw-r--r-- 1 runner runner 328169 Nov  5 04:05 tabletop_lock.png
+-rw-r--r-- 1 runner runner 534013 Nov  5 04:00 warmup.png
