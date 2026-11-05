@@ -11,6 +11,6 @@ for pair in Light:plex_light Regular:plex_regular Medium:plex_medium SemiBold:pl
     curl -fsSL --retry 3 "$base/IBMPlexSansArabic-$src.ttf" -o "$dir/$dst.ttf"
   fi
   # a real TrueType file starts with 00 01 00 00
-  head -c 4 "$dir/$dst.ttf" | od -An -tx1 | grep -q "00 01 00 00" || { echo "Bad font file: $dst"; exit 1; }
+  head -c 4 "$dir/$dst.ttf" | od -An -tx1 | tr -s " " | grep -q "00 01 00 00" || { echo "Bad font file: $dst"; exit 1; }
 done
 ls -la "$dir"
