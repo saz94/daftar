@@ -1,0 +1,35 @@
+Performing Streamed Install
+Success
+captured warmup
+captured portrait_home
+captured portrait_docs_empty
+captured portrait_docs
+captured portrait_money_empty
+captured portrait_money
+captured landscape_home
+captured landscape_docs_empty
+captured landscape_docs
+captured landscape_more_empty
+captured landscape_more
+captured landscape_lock
+captured landscape_home_ar
+total 2752
+drwxr-xr-x 2 runner runner   4096 Nov  5 04:03 .
+drwxr-xr-x 8 runner runner   4096 Nov  5 03:58 ..
+-rw-r--r-- 1 runner runner   3746 Nov  5 03:58 avd.txt
+-rw-r--r-- 1 runner runner    128 Nov  5 04:00 device_states.txt
+-rw-r--r-- 1 runner runner 201339 Nov  5 04:02 landscape_docs.png
+-rw-r--r-- 1 runner runner 207746 Nov  5 04:02 landscape_docs_empty.png
+-rw-r--r-- 1 runner runner 218154 Nov  5 04:02 landscape_home.png
+-rw-r--r-- 1 runner runner 212450 Nov  5 04:03 landscape_home_ar.png
+-rw-r--r-- 1 runner runner 121535 Nov  5 04:03 landscape_lock.png
+-rw-r--r-- 1 runner runner 134069 Nov  5 04:02 landscape_more.png
+-rw-r--r-- 1 runner runner 142468 Nov  5 04:02 landscape_more_empty.png
+-rw-r--r-- 1 runner runner 208534 Nov  5 04:01 portrait_docs.png
+-rw-r--r-- 1 runner runner 290689 Nov  5 04:01 portrait_docs_empty.png
+-rw-r--r-- 1 runner runner 268781 Nov  5 04:01 portrait_home.png
+-rw-r--r-- 1 runner runner 221775 Nov  5 04:01 portrait_money.png
+-rw-r--r-- 1 runner runner 274780 Nov  5 04:01 portrait_money_empty.png
+-rw-r--r-- 1 runner runner    364 Nov  5 04:03 run.txt
+-rw-r--r-- 1 runner runner   1266 Nov  5 03:58 runner.txt
+-rw-r--r-- 1 runner runner 268928 Nov  5 04:00 warmup.png
